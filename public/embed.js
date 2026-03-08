@@ -5,7 +5,9 @@
   if (!id) return;
 
   var BASE = src.split("/embed.js")[0];
-  var SIZES = { small: "340px", medium: "380px", large: "440px" };
+  var SIZES    = { small: "340px", medium: "400px", large: "480px" };
+  var BTN_SIZE = { small: "52px",  medium: "62px",  large: "72px"  };
+  var ICO_SIZE = { small: "20px",  medium: "24px",  large: "28px"  };
 
   function hexToRgba(hex, alpha) {
     var r = parseInt(hex.slice(1, 3), 16);
@@ -16,7 +18,10 @@
 
   function buildWidget(accent, size) {
     accent = accent || "#a855f7";
-    var width = SIZES[size] || "380px";
+    size = size || "medium";
+    var width = SIZES[size] || "400px";
+    var btnW  = BTN_SIZE[size] || "62px";
+    var icoSz = ICO_SIZE[size] || "24px";
     var shadow = hexToRgba(accent, 0.5);
     var shadowHover = hexToRgba(accent, 0.7);
 
@@ -25,9 +30,9 @@
     btn.setAttribute("aria-label", "Öppna chatt");
     btn.style.cssText = [
       "position:fixed", "bottom:24px", "right:24px", "z-index:2147483647",
-      "width:56px", "height:56px", "border-radius:50%", "border:none",
+      "width:" + btnW, "height:" + btnW, "border-radius:50%", "border:none",
       "background:" + accent,
-      "color:white", "font-size:22px", "cursor:pointer",
+      "color:white", "font-size:" + icoSz, "cursor:pointer",
       "box-shadow:0 4px 24px " + shadow,
       "transition:transform 0.2s,box-shadow 0.2s",
       "display:flex", "align-items:center", "justify-content:center",
