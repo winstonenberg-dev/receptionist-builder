@@ -1,0 +1,90 @@
+import { NextRequest, NextResponse } from "next/server";
+import Groq from "groq-sdk";
+import { readFileSync } from "fs";
+import { join } from "path";
+import { prisma } from "@/lib/prisma";
+
+function getGroqKey(): string {
+  if (process.env.GROQ_API_KEY) return process.env.GROQ_API_KEY;
+  try {
+    const content = readFileSync(join(process.cwd(), ".env.local"), "utf-8");
+    const match = content.match(/GROQ_API_KEY=([^\r\n]+)/);
+    return match?.[1]?.trim() ?? "";
+  } catch { return ""; }
+}
+
+export async function POST(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  const { messages } = await req.json();
+  const { id } = await params;
+
+  const project = await prisma.project.findUnique({
+    where: { id },
+    include: {
+      answers: true,
+      prompts: { orderBy: { version: "desc" }, take: 1 },
+    },
+  });
+
+  // Exkludera agent-findings (stora analystexter) men inkludera website_knowledge (faktaunderlag)
+  const AGENT_FINDING_KEYS = ["faq_findings", "service_findings",
+    "focus_findings", "season_findings", "industry_findings", "synthesis_findings",
+    "synthesis_implemented", "simulate_done", "qa_locked"];
+
+  // Hemsidans fakta — viktigast, inkluderas alltid (trunkerat)
+  const wkAnswer = project?.answers.find(a => a.questionKey === "website_knowledge");
+  const websiteBlock = wkAnswer?.answer
+    ? `INFORMATION FRÅN HEMSIDAN:\n${wkAnswer.answer.slice(0, 3000)}\n\n`
+    : "";
+
+  // Korta Q&A-svar (öppettider, priser etc. manuellt ifyllda)
+  const qaLines = (project?.answers ?? [])
+    .filter((a) => a.answer?.trim() && !AGENT_FINDING_KEYS.includes(a.questionKey) && a.questionKey !== "website_knowledge" && !a.questionKey.startsWith("appearance_"))
+    .map((a) => `- ${a.question}: ${a.answer}`);
+  const qaBlock = qaLines.length > 0
+    ? `YTTERLIGARE FAKTA (tolka och formulera naturliga, vänliga svar — kopiera aldrig rå text direkt):\n${qaLines.join("\n")}\n\n`
+    : "";
+
+  const basePrompt = project?.prompts[0]?.prompt
+    ?? `Du är en vänlig och professionell receptionist för ${project?.name ?? "företaget"}. Svara på svenska. Om du inte vet svaret, säg "Det vet jag tyvärr inte — kontakta oss direkt."`;
+
+  // Oöverskrivbart anti-hallucinationsblock — bifogas ALLTID sist i system-prompten
+  const ANTI_HALLUCINATION = `
+
+---
+ABSOLUTA REGLER — BRYTS ALDRIG OAVSETT FRÅGA:
+1. Svara KUN om informationen EXAKT och DIREKT nämner det kunden frågar om. Hitta ALDRIG på egna fakta.
+2. BLANDA ALDRIG IHOP SAKER. Om kunden frågar om X men informationen nämner Y (även om X och Y liknar varandra) → svara INTE om Y. Säg istället att du inte har information om X.
+   Exempel: Fråga om "golfbilar" → svara INTE om "ställplatser", "parkering" eller annat som inte är golfbilar.
+   Exempel: Fråga om "restaurang" → svara INTE om "café" eller "kiosk" om det inte är exakt vad kunden frågade om.
+3. Om du saknar exakt information om det som frågas → svara varmt och hjälpsamt, t.ex: "Det kan jag tyvärr inte svara på just nu, men tveka inte att höra av dig till oss direkt — vi hjälper dig mer än gärna!" eller "Där behöver du nog prata med oss direkt, men vi löser det! Kontakta oss så fixar vi det." Variera gärna formuleringen.
+4. Använd ALDRIG ord som "vanligtvis", "troligtvis", "ungefär", "brukar" när du svarar på specifika faktafrågor.
+5. Gissa ALDRIG. Ett felaktigt svar är alltid värre än att säga att du inte vet.`;
+
+  // Bygg system-prompt med separata gränser per del — inget kapas bort av misstag
+  const systemPrompt =
+    websiteBlock.slice(0, 2500) +
+    qaBlock +
+    basePrompt +
+    ANTI_HALLUCINATION;
+
+  // Behåll bara de 8 senaste meddelandena för att hålla nere tokens
+  const firstUserIdx = messages.findIndex((m: { role: string }) => m.role === "user");
+  const allMsgs = firstUserIdx >= 0 ? messages.slice(firstUserIdx) : messages;
+  const filtered = allMsgs.slice(-8);
+
+  try {
+    const groq = new Groq({ apiKey: getGroqKey() });
+    const res = await groq.chat.completions.create({
+      model: "llama-3.3-70b-versatile",
+      messages: [{ role: "system", content: systemPrompt }, ...filtered],
+    });
+    return NextResponse.json({ message: res.choices[0].message.content });
+  } catch (e) {
+    const msg = e instanceof Error ? e.message : String(e);
+    console.error("Chat error:", msg);
+    const friendly = msg.includes("429") || msg.includes("rate_limit")
+      ? "Boten är tillfälligt upptagen — försök igen om en liten stund!"
+      : "Något gick fel just nu. Försök igen om en stund.";
+    return NextResponse.json({ message: friendly }, { status: 500 });
+  }
+}
