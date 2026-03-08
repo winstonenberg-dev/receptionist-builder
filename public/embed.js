@@ -69,6 +69,7 @@
     container.appendChild(iframe);
 
     var open = false;
+    var closedHTML = btn.innerHTML;
 
     btn.onclick = function () {
       open = !open;
@@ -83,7 +84,7 @@
         container.style.opacity = "0";
         container.style.transform = "translateY(8px)";
         setTimeout(function () { container.style.display = "none"; }, 200);
-        btn.innerHTML = "💬";
+        btn.innerHTML = closedHTML;
       }
     };
 
