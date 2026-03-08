@@ -22,10 +22,11 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ id:
   const get = (key: string) => project.answers.find(a => a.questionKey === key)?.answer ?? null;
 
   return NextResponse.json({
-    name: project.name,
+    name:    project.name,
     botName: get("appearance_bot_name") || project.name,
-    theme:  get("appearance_theme")    || "dark",
-    accent: get("appearance_accent")   || "#a855f7",
-    size:   get("appearance_size")     || "medium",
+    theme:   get("appearance_theme")    || "dark",
+    accent:  get("appearance_accent")   || "#a855f7",
+    size:    get("appearance_size")     || "medium",
+    icon:    get("appearance_icon")     || "",
   }, { headers: CORS });
 }

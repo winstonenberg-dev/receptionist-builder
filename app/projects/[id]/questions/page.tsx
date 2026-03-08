@@ -96,6 +96,7 @@ export default function ConfigurePage() {
   const [appTheme, setAppTheme] = useState<"dark" | "light" | "white">("dark");
   const [appAccent, setAppAccent] = useState("#a855f7");
   const [appSize, setAppSize] = useState<"small" | "medium" | "large">("medium");
+  const [appIcon, setAppIcon] = useState("");
   const [appSaving, setAppSaving] = useState(false);
   const [appSaved, setAppSaved] = useState(false);
 
@@ -165,6 +166,8 @@ export default function ConfigurePage() {
       if (accentAns?.answer) setAppAccent(accentAns.answer);
       const sizeAns = answers.find(a => a.questionKey === "appearance_size");
       if (sizeAns?.answer) setAppSize(sizeAns.answer as "small" | "medium" | "large");
+      const iconAns = answers.find(a => a.questionKey === "appearance_icon");
+      if (iconAns?.answer) setAppIcon(iconAns.answer);
 
       const synthImpl = answers.find(a => a.questionKey === "synthesis_implemented");
       const synthFinding = answers.find(a => a.questionKey === "synthesis_findings");
@@ -212,6 +215,7 @@ export default function ConfigurePage() {
         { questionKey: "appearance_theme", question: "Tema", answer: appTheme },
         { questionKey: "appearance_accent", question: "Accentfärg", answer: appAccent },
         { questionKey: "appearance_size", question: "Storlek", answer: appSize },
+        { questionKey: "appearance_icon", question: "Ikon URL", answer: appIcon },
       ]}),
     });
     setAppSaving(false);
@@ -619,6 +623,14 @@ export default function ConfigurePage() {
                     </button>
                   ))}
                 </div>
+              </div>
+
+              <div className="mb-3">
+                <label className="text-[9px] font-medium text-[#5a5270] mb-0.5 block">Ikon-URL (valfri bild på bubblan)</label>
+                <input type="url" value={appIcon} onChange={e => setAppIcon(e.target.value)}
+                  placeholder="https://... (lämna tomt för standard 💬)"
+                  className="w-full bg-[#0d0b12] border border-[#2a2440] focus:border-[#4d4468] text-white placeholder:text-[#2a2440] rounded-lg px-2 py-1.5 text-[10px] focus:outline-none focus:ring-1 focus:ring-fuchsia-500/20" />
+                {appIcon && <img src={appIcon} alt="förhandsvisning" className="mt-1.5 w-10 h-10 rounded-full object-cover border border-[#2a2440]" />}
               </div>
 
               <button onClick={saveAppearance} disabled={appSaving}

@@ -16,7 +16,7 @@
     return "rgba(" + r + "," + g + "," + b + "," + alpha + ")";
   }
 
-  function buildWidget(accent, size) {
+  function buildWidget(accent, size, icon) {
     accent = accent || "#a855f7";
     size = size || "medium";
     var width = SIZES[size] || "400px";
@@ -36,8 +36,11 @@
       "box-shadow:0 4px 24px " + shadow,
       "transition:transform 0.2s,box-shadow 0.2s",
       "display:flex", "align-items:center", "justify-content:center",
+      "overflow:hidden",
     ].join(";");
-    btn.innerHTML = "💬";
+    btn.innerHTML = icon
+      ? '<img src="' + icon + '" style="width:100%;height:100%;object-fit:cover;" />'
+      : "💬";
 
     btn.onmouseenter = function () {
       btn.style.transform = "scale(1.1)";
@@ -105,6 +108,6 @@
 
   fetch(BASE + "/api/embed/" + id)
     .then(function (r) { return r.json(); })
-    .then(function (d) { buildWidget(d.accent, d.size); })
+    .then(function (d) { buildWidget(d.accent, d.size, d.icon); })
     .catch(function () { buildWidget(null, null); });
 })();
