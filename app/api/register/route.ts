@@ -3,7 +3,11 @@ import bcrypt from "bcryptjs";
 import { prisma } from "@/lib/prisma";
 
 export async function POST(req: NextRequest) {
-  const { email, password, name } = await req.json();
+  const { email, password, name, inviteCode } = await req.json();
+  const validCode = process.env.REGISTRATION_CODE;
+  if (!validCode || inviteCode !== validCode) {
+    return NextResponse.json({ error: "Ogiltig inbjudningskod" }, { status: 403 });
+  }
   if (!email || !password) return NextResponse.json({ error: "Email och lösenord krävs" }, { status: 400 });
   const exists = await prisma.user.findUnique({ where: { email } });
   if (exists) return NextResponse.json({ error: "Email används redan" }, { status: 400 });

@@ -7,6 +7,7 @@ export default function RegisterPage() {
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [inviteCode, setInviteCode] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const router = useRouter();
@@ -18,7 +19,7 @@ export default function RegisterPage() {
     const res = await fetch("/api/register", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ name, email, password }),
+      body: JSON.stringify({ name, email, password, inviteCode }),
     });
     const data = await res.json();
     if (data.ok) {
@@ -39,6 +40,11 @@ export default function RegisterPage() {
         </div>
         <div className="bg-[#14111e] border border-[#2a2440] rounded-2xl p-6">
           <form onSubmit={handleSubmit} className="space-y-4">
+            <div>
+              <label className="block text-xs font-medium text-[#9b93b3] mb-1.5">Inbjudningskod</label>
+              <input type="password" value={inviteCode} onChange={(e) => setInviteCode(e.target.value)} required
+                className="w-full bg-[#1c1829] border border-[#3d3456] text-white placeholder:text-[#4d4468] rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-fuchsia-500/40 focus:border-fuchsia-500/60" />
+            </div>
             <div>
               <label className="block text-xs font-medium text-[#9b93b3] mb-1.5">Namn</label>
               <input type="text" value={name} onChange={(e) => setName(e.target.value)}
