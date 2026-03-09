@@ -61,8 +61,15 @@ export default function NewProjectPage() {
           </div>
           <div>
             <label className="block text-xs font-medium text-[#9b93b3] mb-1.5">Bransch</label>
-            <input type="text" value={industry} onChange={(e) => setIndustry(e.target.value)} placeholder="t.ex. golfklubb, restaurang, hotell..."
-              className="w-full bg-[#1c1829] border border-[#3d3456] text-white placeholder:text-[#4d4468] rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-fuchsia-500/40 focus:border-fuchsia-500/60" />
+            <select value={industry} onChange={(e) => setIndustry(e.target.value)}
+              className="w-full bg-[#1c1829] border border-[#3d3456] text-white rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-fuchsia-500/40 focus:border-fuchsia-500/60 appearance-none cursor-pointer">
+              <option value="">Välj bransch...</option>
+              <option value="golf">⛳ Golf</option>
+              <option value="restaurang">🍽️ Restaurang / Café</option>
+              <option value="hotell">🏨 Hotell</option>
+              <option value="frisör">✂️ Frisör / Skönhet</option>
+              <option value="annan">🏢 Annan bransch</option>
+            </select>
           </div>
           {error && (
             <p className="text-pink-400 text-sm bg-pink-500/10 border border-pink-500/20 rounded-xl px-3 py-2">{error}</p>

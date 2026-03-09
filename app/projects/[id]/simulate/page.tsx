@@ -1,5 +1,5 @@
 "use client";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
 
@@ -46,8 +46,15 @@ function starDot(stars: number) {
   return "bg-red-400";
 }
 
+const SIMULATE_LABELS: Record<string, { title: string; desc: string; emoji: string; loadingText: string }> = {
+  golf:      { title: "Simulera 100 golfklubbar",      emoji: "🏌️", desc: "Skickar din AI-receptionist 100 vanliga frågor från svenska golfklubbar.",     loadingText: "Simulerar 100 golfklubbar..." },
+  restaurang:{ title: "Simulera 100 restaurangkunder", emoji: "🍽️", desc: "Skickar din AI-receptionist 100 vanliga frågor från restaurangkunder.",          loadingText: "Simulerar 100 restaurangkunder..." },
+};
+const DEFAULT_LABEL = { title: "Simulera kunder", emoji: "🧪", desc: "Skickar din AI-receptionist 100 frågor och utvärderar svaren automatiskt.", loadingText: "Simulerar..." };
+
 export default function SimulatePage() {
   const { id } = useParams<{ id: string }>();
+  const [industry, setIndustry] = useState("");
   const [loading, setLoading] = useState(false);
   const [data, setData] = useState<SimulateResponse | null>(null);
   const [error, setError] = useState("");
@@ -55,6 +62,12 @@ export default function SimulatePage() {
   const [improveLoading, setImproveLoading] = useState(false);
   const [improveResult, setImproveResult] = useState<{ version: number } | null>(null);
   const [improveError, setImproveError] = useState("");
+
+  useEffect(() => {
+    fetch(`/api/projects/${id}`).then(r => r.json()).then(p => { if (p?.industry) setIndustry(p.industry); });
+  }, [id]);
+
+  const labels = SIMULATE_LABELS[industry] ?? DEFAULT_LABEL;
 
   const run = async () => {
     setLoading(true);
@@ -155,10 +168,8 @@ Förbättra prompten så att receptionisten kan svara bättre på de frågor som
 
         {/* Header */}
         <div className="mb-8">
-          <h1 className="text-2xl font-bold text-white mb-1">🧪 Simulera 100 golfklubbar</h1>
-          <p className="text-[#7a7090] text-sm">
-            Skickar din AI-receptionist 100 vanliga frågor från svenska golfklubbar och utvärderar svaren automatiskt.
-          </p>
+          <h1 className="text-2xl font-bold text-white mb-1">{labels.emoji} {labels.title}</h1>
+          <p className="text-[#7a7090] text-sm">{labels.desc}</p>
         </div>
 
         {/* Run button + stats */}
@@ -187,7 +198,7 @@ Förbättra prompten så att receptionisten kan svara bättre på de frågor som
           <div className="bg-[#14111e] border border-[#2a2440] rounded-2xl p-12 text-center max-w-xl mx-auto">
             <div className="flex items-center justify-center gap-3 mb-4">
               <span className="w-6 h-6 border-2 border-fuchsia-500 border-t-transparent rounded-full animate-spin" />
-              <span className="text-white font-semibold">Simulerar 100 golfklubbar...</span>
+              <span className="text-white font-semibold">{labels.loadingText}</span>
             </div>
             <p className="text-[#7a7090] text-sm mb-6">
               Alla 100 frågor skickas och besvaras av din AI-receptionist.<br />

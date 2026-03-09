@@ -1,17 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import Groq from "groq-sdk";
-import { readFileSync } from "fs";
-import { join } from "path";
 import { prisma } from "@/lib/prisma";
-
-function getGroqKey(): string {
-  if (process.env.GROQ_API_KEY) return process.env.GROQ_API_KEY;
-  try {
-    const content = readFileSync(join(process.cwd(), ".env.local"), "utf-8");
-    const match = content.match(/GROQ_API_KEY=([^\r\n]+)/);
-    return match?.[1]?.trim() ?? "";
-  } catch { return ""; }
-}
 
 // ── Regelbaserad scoring — 100% deterministisk, samma resultat varje körning ──
 // Mäter vad receptionisten faktiskt vet, inte hur AI mår den dagen.
@@ -177,12 +166,115 @@ const CLUBS = [
   { name: "Kalmar Stads GK",      city: "Kalmar",      question: "Har ni något lojalitetsprogram för stamgäster?" },
 ];
 
+const RESTAURANTS = [
+  { name: "Kund 1",   city: "Stockholm",   question: "Vilka är era öppettider på helgen?" },
+  { name: "Kund 2",   city: "Göteborg",    question: "Kan man boka bord för 8 personer?" },
+  { name: "Kund 3",   city: "Malmö",       question: "Har ni veganska rätter på menyn?" },
+  { name: "Kund 4",   city: "Uppsala",     question: "Vad kostar en genomsnittlig middag?" },
+  { name: "Kund 5",   city: "Linköping",   question: "Accepterar ni Swish som betalning?" },
+  { name: "Kund 6",   city: "Örebro",      question: "Har ni uteservering på sommaren?" },
+  { name: "Kund 7",   city: "Västerås",    question: "Kan man ta med hundar om man sitter ute?" },
+  { name: "Kund 8",   city: "Helsingborg", question: "Serverar ni lunch vardagar?" },
+  { name: "Kund 9",   city: "Norrköping",  question: "Har ni glutenfria alternativ?" },
+  { name: "Kund 10",  city: "Jönköping",   question: "Kan man boka hela restaurangen för fest?" },
+  { name: "Kund 11",  city: "Lund",        question: "Vad är er avbokningspolicy?" },
+  { name: "Kund 12",  city: "Umeå",        question: "Har ni barnmeny?" },
+  { name: "Kund 13",  city: "Sundsvall",   question: "Serverar ni frukost?" },
+  { name: "Kund 14",  city: "Gävle",       question: "Finns det parkering i närheten?" },
+  { name: "Kund 15",  city: "Borås",       question: "Erbjuder ni take-away?" },
+  { name: "Kund 16",  city: "Eskilstuna",  question: "Har ni alkoholfria alternativ till drinkar?" },
+  { name: "Kund 17",  city: "Södertälje",  question: "Kan man beställa tårta till ett kalas?" },
+  { name: "Kund 18",  city: "Halmstad",    question: "Vad är er senaste tid för bordbokning?" },
+  { name: "Kund 19",  city: "Karlstad",    question: "Har ni WiFi för gäster?" },
+  { name: "Kund 20",  city: "Trollhättan", question: "Serverar ni à la carte på lunchmenyn?" },
+  { name: "Kund 21",  city: "Östersund",   question: "Finns det ett piano eller musik på kvällar?" },
+  { name: "Kund 22",  city: "Växjö",       question: "Hur lång tid tar en typisk middag hos er?" },
+  { name: "Kund 23",  city: "Falun",       question: "Erbjuder ni catering för företagsevent?" },
+  { name: "Kund 24",  city: "Skövde",      question: "Kan vi ta med en egen tårta till kalaset?" },
+  { name: "Kund 25",  city: "Kalmar",      question: "Är ni öppna på röda dagar?" },
+  { name: "Kund 26",  city: "Kristianstad",question: "Har ni en bar eller bara matservering?" },
+  { name: "Kund 27",  city: "Varberg",     question: "Kan man sitta utan bordsbokning?" },
+  { name: "Kund 28",  city: "Trelleborg",  question: "Vad ingår i trerättersmenyn?" },
+  { name: "Kund 29",  city: "Visby",       question: "Har ni specialmeny för allergiker?" },
+  { name: "Kund 30",  city: "Nyköping",    question: "Är restaurangen tillgänglig för rullstolsanvändare?" },
+  { name: "Kund 31",  city: "Lidköping",   question: "Erbjuder ni vinpaket till maten?" },
+  { name: "Kund 32",  city: "Motala",      question: "Kan man sitta utomhus om det regnar?" },
+  { name: "Kund 33",  city: "Ängelholm",   question: "Hur bokar man en privat sällskapslokal?" },
+  { name: "Kund 34",  city: "Piteå",       question: "Finns det presentkort att köpa?" },
+  { name: "Kund 35",  city: "Kiruna",      question: "Har ni laktosfria alternativ?" },
+  { name: "Kund 36",  city: "Luleå",       question: "Serverar ni mat sent på kvällen?" },
+  { name: "Kund 37",  city: "Skellefteå",  question: "Kan man köpa vin från er vinkällare hem?" },
+  { name: "Kund 38",  city: "Härnösand",   question: "Är det trångt att sitta hos er?" },
+  { name: "Kund 39",  city: "Hudiksvall",  question: "Har ni lokal för möten med projector?" },
+  { name: "Kund 40",  city: "Bollnäs",     question: "Vad händer om vi är fler än bokat?" },
+  { name: "Kund 41",  city: "Sandviken",   question: "Kan ni laga mat för 50+ gäster?" },
+  { name: "Kund 42",  city: "Sala",        question: "Är det möjligt att anpassa menyn för oss?" },
+  { name: "Kund 43",  city: "Arboga",      question: "Hur gammal måste man vara för att sitta i baren?" },
+  { name: "Kund 44",  city: "Strängnäs",   question: "Har ni dressade salladsmöjligheter?" },
+  { name: "Kund 45",  city: "Mariefred",   question: "Serverar ni brunch på helger?" },
+  { name: "Kund 46",  city: "Trosa",       question: "Kan man fira bröllop hos er?" },
+  { name: "Kund 47",  city: "Enköping",    question: "Har ni en chef som kan anpassa rätter?" },
+  { name: "Kund 48",  city: "Märsta",      question: "Vad är era bästa rätter?" },
+  { name: "Kund 49",  city: "Norrtälje",   question: "Kan man se matlagningen i ett öppet kök?" },
+  { name: "Kund 50",  city: "Vaxholm",     question: "Tar ni emot Rikskuponger eller liknande?" },
+  { name: "Kund 51",  city: "Lidingö",     question: "Har ni lojalitetsprogram eller stämpelkort?" },
+  { name: "Kund 52",  city: "Nacka",       question: "Erbjuder ni after work-meny?" },
+  { name: "Kund 53",  city: "Tyresö",      question: "Kan man äta ute trots regn (tält/värmelampor)?" },
+  { name: "Kund 54",  city: "Haninge",     question: "Hur snabbt får man mat efter beställning?" },
+  { name: "Kund 55",  city: "Huddinge",    question: "Serverar ni franska viner?" },
+  { name: "Kund 56",  city: "Botkyrka",    question: "Är er restaurang bra för dejt?" },
+  { name: "Kund 57",  city: "Sollentuna",  question: "Tar ni betalt per person eller per bord?" },
+  { name: "Kund 58",  city: "Täby",        question: "Finns det en lounge-del?" },
+  { name: "Kund 59",  city: "Vallentuna",  question: "Kan ni anordna en överraskning för jubileum?" },
+  { name: "Kund 60",  city: "Sigtuna",     question: "Är det svårt att parkera här på kvällstid?" },
+  { name: "Kund 61",  city: "Knivsta",     question: "Har ni meny på engelska?" },
+  { name: "Kund 62",  city: "Tierp",       question: "Hur hanterar ni stora grupper med olika allergier?" },
+  { name: "Kund 63",  city: "Östhammar",   question: "Kan man fira barnkalas här?" },
+  { name: "Kund 64",  city: "Älvkarleby",  question: "Serverar ni husmanskost?" },
+  { name: "Kund 65",  city: "Tierp",       question: "Har ni möjlighet att servera matkassar hem?" },
+  { name: "Kund 66",  city: "Gimo",        question: "Erbjuder ni personalmiddagar?" },
+  { name: "Kund 67",  city: "Rimbo",       question: "Kan man ta med egna drycker (korkavgift)?" },
+  { name: "Kund 68",  city: "Hallstavik",  question: "Vad skiljer er från andra restauranger?" },
+  { name: "Kund 69",  city: "Väddö",       question: "Har ni råvaror från lokala producenter?" },
+  { name: "Kund 70",  city: "Söderhamn",   question: "Finns det möjlighet till livelmusik?" },
+  { name: "Kund 71",  city: "Ljusdal",     question: "Kan vi beställa hemkörning av mat?" },
+  { name: "Kund 72",  city: "Ånge",        question: "Har ni meny som byts ut säsong för säsong?" },
+  { name: "Kund 73",  city: "Sundsvall",   question: "Erbjuder ni hållbar och ekologisk mat?" },
+  { name: "Kund 74",  city: "Timrå",       question: "Hur ser bordsplaceringen ut vid festsittning?" },
+  { name: "Kund 75",  city: "Härnösand",   question: "Kan man hyra restaurangen exklusivt?" },
+  { name: "Kund 76",  city: "Kramfors",    question: "Servar ni mat eller beställer gästerna själva?" },
+  { name: "Kund 77",  city: "Sollefteå",   question: "Tar ni emot bokningar samma dag?" },
+  { name: "Kund 78",  city: "Örnsköldsvik",question: "Har ni ett separat rum för rökare?" },
+  { name: "Kund 79",  city: "Sundsvall",   question: "Erbjuder ni lunch för under 100 kr?" },
+  { name: "Kund 80",  city: "Timrå",       question: "Kan man boka bord via Instagram/sociala medier?" },
+  { name: "Kund 81",  city: "Härnösand",   question: "Har ni en Michelin-stjärna eller annan utmärkelse?" },
+  { name: "Kund 82",  city: "Stenungsund", question: "Erbjuder ni mat för folk med nötallergier?" },
+  { name: "Kund 83",  city: "Kungälv",     question: "Hur länge i förväg bör man boka bord?" },
+  { name: "Kund 84",  city: "Ale",         question: "Kan man hänga av sig jackan vid ingången?" },
+  { name: "Kund 85",  city: "Lerum",       question: "Serverar ni bara a la carte eller också buffé?" },
+  { name: "Kund 86",  city: "Mölndal",     question: "Har ni några vegetariska specialrätter?" },
+  { name: "Kund 87",  city: "Partille",    question: "Är det möjligt att sitta ensam och arbeta?" },
+  { name: "Kund 88",  city: "Härryda",     question: "Erbjuder ni mat sent på natten?" },
+  { name: "Kund 89",  city: "Kungsbacka",  question: "Kan man köpa mat att ta med hem?" },
+  { name: "Kund 90",  city: "Falkenberg",  question: "Har ni studentrabatt?" },
+  { name: "Kund 91",  city: "Laholm",      question: "Erbjuder ni matkuponger för stora sällskap?" },
+  { name: "Kund 92",  city: "Båstad",      question: "Kan man sitta länge och umgås utan att bli bortvisad?" },
+  { name: "Kund 93",  city: "Ängelholm",   question: "Har ni kockar med internationell erfarenhet?" },
+  { name: "Kund 94",  city: "Landskrona",  question: "Serverar ni mat med säsongsbetonade råvaror?" },
+  { name: "Kund 95",  city: "Eslöv",       question: "Erbjuder ni privat middagsupplevelse för par?" },
+  { name: "Kund 96",  city: "Sjöbo",       question: "Kan man kombinera restaurangbesök med hotellvistelse?" },
+  { name: "Kund 97",  city: "Ystad",       question: "Hur hanterar ni bokningar som inte dyker upp?" },
+  { name: "Kund 98",  city: "Simrishamn",  question: "Har ni havsvy eller naturskönt läge?" },
+  { name: "Kund 99",  city: "Tomelilla",   question: "Erbjuder ni kurskvällar eller matlagningskurser?" },
+  { name: "Kund 100", city: "Vellinge",    question: "Kan man anmäla sig till er nyhetsbrev för erbjudanden?" },
+];
+
 export async function POST(
   _req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
   const { id } = await params;
-  const groq = new Groq({ apiKey: getGroqKey() });
+  const groq = new Groq({ apiKey: process.env.GROQ_API_KEY ?? "" });
 
   const project = await prisma.project.findUnique({
     where: { id },
@@ -193,6 +285,9 @@ export async function POST(
   });
 
   if (!project) return NextResponse.json({ error: "Projekt hittades inte" }, { status: 404 });
+
+  // Välj rätt scenariolista baserat på bransch
+  const SCENARIOS = project.industry === "restaurang" ? RESTAURANTS : CLUBS;
 
   const qaLines = (project.answers ?? [])
     .filter(a => a.answer?.trim() && !a.questionKey.endsWith("_findings") && a.questionKey !== "website_knowledge")
@@ -213,7 +308,7 @@ export async function POST(
     }, { status: 400 });
   }
 
-  const clubsList = CLUBS.map((c, i) => `${i + 1}. "${c.question}"`).join("\n");
+  const clubsList = SCENARIOS.map((c, i) => `${i + 1}. "${c.question}"`).join("\n");
 
   // ── FAS 1: Receptionisten svarar — temperature låg för konsekvens ──
   const answerPrompt = `Du är en AI-receptionist med följande information:
@@ -248,11 +343,11 @@ ${clubsList}`;
   // ── FAS 2: Regelbaserad scoring — 100% deterministisk ──
   // Betyget baseras på VAD svaret innehåller, inte hur AI:n känner för dagen.
   const scored = answerItems.map(item => {
-    const club = CLUBS[item.i - 1];
+    const club = SCENARIOS[item.i - 1];
     const { stars, reason } = ruleScore(item.answer);
     return {
       i: item.i,
-      club: club?.name ?? `Klubb ${item.i}`,
+      club: club?.name ?? `Kund ${item.i}`,
       city: club?.city ?? "",
       question: club?.question ?? "",
       answer: item.answer,

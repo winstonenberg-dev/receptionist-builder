@@ -6,27 +6,66 @@ import Link from "next/link";
 type AgentResults = Record<string, { findings: string; searchResults?: number }>;
 type Message = { role: "user" | "assistant"; content: string };
 
-const QA_QUESTIONS = [
-  { key: "qa_greenfee",      label: "Greenfee-priser",          placeholder: "T.ex. Veckdag 350 kr, Helg 450 kr, Junior 150 kr" },
-  { key: "qa_opening_hours", label: "Öppettider (bana)",        placeholder: "T.ex. Mån–Sön 07:00–20:00 (april–oktober)" },
-  { key: "qa_season",        label: "Säsong",                   placeholder: "T.ex. Banan öppen april–oktober, stängd vintertid" },
-  { key: "qa_holes",         label: "Antal hål & bana",         placeholder: "T.ex. 18-håls + 9-håls kort bana, par 72, slope 130" },
-  { key: "qa_booking",       label: "Bokning av tee-tid",       placeholder: "T.ex. Bokas via MinGolf-appen eller tel 0171-123 45" },
-  { key: "qa_handicap",      label: "Handicap-krav",            placeholder: "T.ex. Max hcp 54 krävs, inget krav på 9-håls" },
-  { key: "qa_guests",        label: "Gästspel",                 placeholder: "T.ex. Gäster välkomna, boka i förväg, medföljande medlem ej krav" },
-  { key: "qa_membership",    label: "Medlemskap",               placeholder: "T.ex. Årsmedlem 4 500 kr, ansökan via hemsidan" },
-  { key: "qa_golf_carts",    label: "Golfbilar",                placeholder: "T.ex. 8 st, 295 kr/runda, bokas i receptionen" },
-  { key: "qa_trolley",       label: "Draggkärra & bag-drop",    placeholder: "T.ex. Draggkärror gratis, eltrolla 150 kr/dag" },
-  { key: "qa_club_rental",   label: "Klubbuthyrning",           placeholder: "T.ex. Fullset 200 kr/dag, finns i receptionen" },
-  { key: "qa_driving_range", label: "Driving range",            placeholder: "T.ex. Öppen 07–20, 50 bollar 50 kr, 100 bollar 90 kr" },
-  { key: "qa_lessons",       label: "Golfträning & lektioner",  placeholder: "T.ex. PGA-pro på plats, 45 min lektion 600 kr, bokas via tel" },
-  { key: "qa_proshop",       label: "Proshop",                  placeholder: "T.ex. Öppen 09–18 alla dagar, kläder, bollar, utrustning" },
-  { key: "qa_restaurant",    label: "Restaurang & café",        placeholder: "T.ex. Serverar lunch 11–15, à la carte 15–20, stängt måndag" },
-  { key: "qa_locker_room",   label: "Omklädningsrum & dusch",   placeholder: "T.ex. Ja, finns för herr och dam, dusch ingår" },
-  { key: "qa_parking",       label: "Parkering",                placeholder: "T.ex. Gratis parkering direkt vid klubbhuset" },
-  { key: "qa_address",       label: "Adress",                   placeholder: "T.ex. Golfvägen 1, 745 98 Enköping" },
-  { key: "qa_phone",         label: "Telefon",                  placeholder: "T.ex. 0171-123 45" },
-  { key: "qa_email",         label: "Email",                    placeholder: "T.ex. info@klubben.se" },
+const QA_QUESTIONS_BY_INDUSTRY: Record<string, { key: string; label: string; placeholder: string }[]> = {
+  golf: [
+    { key: "qa_greenfee",      label: "Greenfee-priser",          placeholder: "T.ex. Veckdag 350 kr, Helg 450 kr, Junior 150 kr" },
+    { key: "qa_opening_hours", label: "Öppettider (bana)",        placeholder: "T.ex. Mån–Sön 07:00–20:00 (april–oktober)" },
+    { key: "qa_season",        label: "Säsong",                   placeholder: "T.ex. Banan öppen april–oktober, stängd vintertid" },
+    { key: "qa_holes",         label: "Antal hål & bana",         placeholder: "T.ex. 18-håls + 9-håls kort bana, par 72, slope 130" },
+    { key: "qa_booking",       label: "Bokning av tee-tid",       placeholder: "T.ex. Bokas via MinGolf-appen eller tel 0171-123 45" },
+    { key: "qa_handicap",      label: "Handicap-krav",            placeholder: "T.ex. Max hcp 54 krävs, inget krav på 9-håls" },
+    { key: "qa_guests",        label: "Gästspel",                 placeholder: "T.ex. Gäster välkomna, boka i förväg" },
+    { key: "qa_membership",    label: "Medlemskap",               placeholder: "T.ex. Årsmedlem 4 500 kr, ansökan via hemsidan" },
+    { key: "qa_golf_carts",    label: "Golfbilar",                placeholder: "T.ex. 8 st, 295 kr/runda, bokas i receptionen" },
+    { key: "qa_trolley",       label: "Draggkärra & bag-drop",    placeholder: "T.ex. Draggkärror gratis, eltrolla 150 kr/dag" },
+    { key: "qa_club_rental",   label: "Klubbuthyrning",           placeholder: "T.ex. Fullset 200 kr/dag, finns i receptionen" },
+    { key: "qa_driving_range", label: "Driving range",            placeholder: "T.ex. Öppen 07–20, 50 bollar 50 kr" },
+    { key: "qa_lessons",       label: "Golfträning & lektioner",  placeholder: "T.ex. PGA-pro på plats, 45 min lektion 600 kr" },
+    { key: "qa_proshop",       label: "Proshop",                  placeholder: "T.ex. Öppen 09–18 alla dagar, kläder, bollar, utrustning" },
+    { key: "qa_restaurant",    label: "Restaurang & café",        placeholder: "T.ex. Serverar lunch 11–15, à la carte 15–20, stängt måndag" },
+    { key: "qa_locker_room",   label: "Omklädningsrum & dusch",   placeholder: "T.ex. Ja, finns för herr och dam, dusch ingår" },
+    { key: "qa_parking",       label: "Parkering",                placeholder: "T.ex. Gratis parkering direkt vid klubbhuset" },
+    { key: "qa_address",       label: "Adress",                   placeholder: "T.ex. Golfvägen 1, 745 98 Enköping" },
+    { key: "qa_phone",         label: "Telefon",                  placeholder: "T.ex. 0171-123 45" },
+    { key: "qa_email",         label: "Email",                    placeholder: "T.ex. info@klubben.se" },
+  ],
+  restaurang: [
+    { key: "qa_opening_hours", label: "Öppettider",               placeholder: "T.ex. Mån–Fre 11–22, Lör–Sön 12–23, stängt tisdagar" },
+    { key: "qa_cuisine",       label: "Typ av mat / kök",         placeholder: "T.ex. Italiensk husmanskost, pizza & pasta, allt hemlagat" },
+    { key: "qa_price_range",   label: "Prisnivå",                 placeholder: "T.ex. Förrätt 95–145 kr, huvudrätt 195–295 kr, dessert 85 kr" },
+    { key: "qa_booking",       label: "Bordsbokning",             placeholder: "T.ex. Bokas via hemsidan, telefon eller drop-in" },
+    { key: "qa_alcohol",       label: "Alkohol & drycker",        placeholder: "T.ex. Serveringstillstånd, vin, öl, sprit. Alkoholfritt finns." },
+    { key: "qa_vegetarian",    label: "Vegetariskt & veganskt",   placeholder: "T.ex. Alltid 2–3 veganalternativ, glutenfritt på beställning" },
+    { key: "qa_allergies",     label: "Allergier & specialkost",  placeholder: "T.ex. Kontakta oss i förväg, vi anpassar vid behov" },
+    { key: "qa_children",      label: "Barnmeny",                 placeholder: "T.ex. Ja, barnmeny 89 kr, barnstolar finns" },
+    { key: "qa_group",         label: "Sällskapslokaler & grupp", placeholder: "T.ex. Privat sal för upp till 40 pers, min 20 pers" },
+    { key: "qa_takeaway",      label: "Takeaway & leverans",      placeholder: "T.ex. Takeaway finns, leverans via Foodora/Uber Eats" },
+    { key: "qa_catering",      label: "Catering",                 placeholder: "T.ex. Vi erbjuder catering för företag, kontakta oss" },
+    { key: "qa_dresscode",     label: "Klädkod",                  placeholder: "T.ex. Smart casual, inga shorts eller sandaler" },
+    { key: "qa_parking",       label: "Parkering",                placeholder: "T.ex. Gatuparkering utanför, P-hus 200 m bort" },
+    { key: "qa_wifi",          label: "WiFi",                     placeholder: "T.ex. Gratis WiFi, fråga personalen om lösenordet" },
+    { key: "qa_payment",       label: "Betalningssätt",           placeholder: "T.ex. Kort, Swish och kontant. Ej Amex." },
+    { key: "qa_giftcard",      label: "Presentkort",              placeholder: "T.ex. Ja, köps i restaurangen eller online" },
+    { key: "qa_address",       label: "Adress",                   placeholder: "T.ex. Storgatan 12, 111 23 Stockholm" },
+    { key: "qa_phone",         label: "Telefon",                  placeholder: "T.ex. 08-123 456 78" },
+    { key: "qa_email",         label: "Email",                    placeholder: "T.ex. boka@restaurangen.se" },
+  ],
+};
+
+const QA_QUESTIONS_GENERIC = [
+  { key: "qa_opening_hours",  label: "Öppettider",               placeholder: "T.ex. Mån–Fre 09–18, Lör 10–15, Sön stängt" },
+  { key: "qa_services",       label: "Tjänster & erbjudanden",   placeholder: "T.ex. Beskriv era huvudsakliga tjänster" },
+  { key: "qa_price_range",    label: "Priser",                   placeholder: "T.ex. Ungefärlig prisbild eller prislista" },
+  { key: "qa_booking",        label: "Bokning / tidsbokning",    placeholder: "T.ex. Bokas via hemsidan, app eller telefon" },
+  { key: "qa_cancel_policy",  label: "Avbokningspolicy",         placeholder: "T.ex. Avbokning senast 24h innan" },
+  { key: "qa_payment",        label: "Betalningssätt",           placeholder: "T.ex. Kort, Swish, faktura" },
+  { key: "qa_parking",        label: "Parkering",                placeholder: "T.ex. Gratis / betalparkering i närheten" },
+  { key: "qa_accessibility",  label: "Tillgänglighet",           placeholder: "T.ex. Rullstolsanpassat, hiss, handikappsparkering" },
+  { key: "qa_wifi",           label: "WiFi",                     placeholder: "T.ex. Gratis WiFi för kunder" },
+  { key: "qa_giftcard",       label: "Presentkort",              placeholder: "T.ex. Ja, köps i butik eller online" },
+  { key: "qa_address",        label: "Adress",                   placeholder: "T.ex. Storgatan 1, 123 45 Staden" },
+  { key: "qa_phone",          label: "Telefon",                  placeholder: "T.ex. 08-123 456 78" },
+  { key: "qa_email",          label: "Email",                    placeholder: "T.ex. info@foretaget.se" },
 ];
 
 function diffLines(oldText: string, newText: string): { text: string; added: boolean }[] {
@@ -91,6 +130,9 @@ export default function ConfigurePage() {
   const [qaSaved, setQaSaved] = useState(false);
   const saveTimers = useRef<Record<string, ReturnType<typeof setTimeout>>>({});
 
+  // Bransch
+  const [industry, setIndustry] = useState("");
+
   // Utseende
   const [appBotName, setAppBotName] = useState("Kundtjänst");
   const [appTheme, setAppTheme] = useState<"dark" | "light" | "white">("dark");
@@ -135,7 +177,7 @@ export default function ConfigurePage() {
     Promise.all([
       fetch(`/api/projects/${id}/answers`).then(r => r.json()),
       fetch(`/api/projects/${id}`).then(r => r.json()),
-    ]).then(([answers, project]: [{ questionKey: string; answer: string }[], { websiteUrl?: string; promptLocked?: boolean }]) => {
+    ]).then(([answers, project]: [{ questionKey: string; answer: string }[], { websiteUrl?: string; promptLocked?: boolean; industry?: string }]) => {
       const wk = answers.find(a => a.questionKey === "website_knowledge");
       if (wk?.answer) { setWebsiteKnowledge(wk.answer); setWebsiteResult({ pagesRead: 1 }); }
 
@@ -148,11 +190,12 @@ export default function ConfigurePage() {
       if (any) setAgentResults(restored);
       if (project?.websiteUrl) setWebsiteUrl(project.websiteUrl);
       if (project?.promptLocked) setPromptLocked(project.promptLocked);
+      if (project?.industry) setIndustry(project.industry);
 
+      // Ladda alla qa_-svar från databasen (oberoende av vilken bransch som visas)
       const qaMap: Record<string, string> = {};
-      for (const q of QA_QUESTIONS) {
-        const found = answers.find(a => a.questionKey === q.key);
-        if (found?.answer) qaMap[q.key] = found.answer;
+      for (const a of answers) {
+        if (a.questionKey.startsWith("qa_")) qaMap[a.questionKey] = a.answer;
       }
       setQaAnswers(qaMap);
       const qaLock = answers.find(a => a.questionKey === "qa_locked");
@@ -192,7 +235,7 @@ export default function ConfigurePage() {
 
   const saveQa = async (lock: boolean) => {
     setQaSaving(true);
-    const filled = QA_QUESTIONS
+    const filled = qaQuestions
       .filter(q => qaAnswers[q.key]?.trim())
       .map(q => ({ questionKey: q.key, question: q.label, answer: qaAnswers[q.key] }));
     filled.push({ questionKey: "qa_locked", question: "QA-lås", answer: lock ? "true" : "false" });
@@ -336,6 +379,17 @@ export default function ConfigurePage() {
     } finally { setAssistantLoading(false); }
   };
 
+  const qaQuestions = QA_QUESTIONS_BY_INDUSTRY[industry] ?? QA_QUESTIONS_GENERIC;
+
+  const simulateLabel: Record<string, string> = {
+    golf: "Simulera 100 golfklubbar",
+    restaurang: "Simulera 100 restaurangkunder",
+  };
+  const simulateDesc: Record<string, string> = {
+    golf: "Testa botten mot 100 riktiga svenska golfklubbar",
+    restaurang: "Testa botten mot 100 vanliga restaurangkunder",
+  };
+
   const step3Disabled = !agentResults?.synthesis;
 
   return (
@@ -462,25 +516,27 @@ export default function ConfigurePage() {
               )}
             </div>
 
-            {/* ── Steg 4: Simulera 100 golfklubbar ── */}
-            <div className={`bg-[#14111e] border rounded-2xl p-3.5 transition ${simulateDone ? "border-emerald-500/30" : "border-[#2a2440]"}`}>
-              <div className="flex items-center gap-3 mb-2.5">
-                <StepCircle num={4} done={simulateDone} />
-                <div className="flex-1 min-w-0">
-                  <p className="text-white font-semibold text-xs leading-snug">Simulera 100 golfklubbar</p>
-                  <p className="text-[#5a5270] text-[10px] mt-0.5 leading-snug">Testa botten mot 100 riktiga svenska golfklubbar</p>
+            {/* ── Steg 4: Simulera (golf/restaurang) ── */}
+            {(industry === "golf" || industry === "restaurang") && (
+              <div className={`bg-[#14111e] border rounded-2xl p-3.5 transition ${simulateDone ? "border-emerald-500/30" : "border-[#2a2440]"}`}>
+                <div className="flex items-center gap-3 mb-2.5">
+                  <StepCircle num={4} done={simulateDone} />
+                  <div className="flex-1 min-w-0">
+                    <p className="text-white font-semibold text-xs leading-snug">{simulateLabel[industry] ?? "Simulera"}</p>
+                    <p className="text-[#5a5270] text-[10px] mt-0.5 leading-snug">{simulateDesc[industry] ?? "Testa botten automatiskt"}</p>
+                  </div>
+                  {simulateDone && (
+                    <span className="text-emerald-400 text-[10px] flex-shrink-0 bg-emerald-500/10 border border-emerald-500/20 px-2 py-0.5 rounded-full">
+                      Klar
+                    </span>
+                  )}
                 </div>
-                {simulateDone && (
-                  <span className="text-emerald-400 text-[10px] flex-shrink-0 bg-emerald-500/10 border border-emerald-500/20 px-2 py-0.5 rounded-full">
-                    Klar
-                  </span>
-                )}
+                <Link href={`/projects/${id}/simulate`}
+                  className="flex items-center justify-center gap-2 w-full bg-[#1c1829] hover:bg-[#2a2440] border border-[#3d3456] hover:border-[#5a5270] text-[#c4bcd4] hover:text-white py-2 rounded-xl font-semibold text-xs transition">
+                  🧪 {simulateDone ? "Kör om simulering" : "Starta simulering"} →
+                </Link>
               </div>
-              <Link href={`/projects/${id}/simulate`}
-                className="flex items-center justify-center gap-2 w-full bg-[#1c1829] hover:bg-[#2a2440] border border-[#3d3456] hover:border-[#5a5270] text-[#c4bcd4] hover:text-white py-2 rounded-xl font-semibold text-xs transition">
-                🧪 {simulateDone ? "Kör om simulering" : "Starta simulering"} →
-              </Link>
-            </div>
+            )}
 
           </div>
 
@@ -495,7 +551,7 @@ export default function ConfigurePage() {
                 <div className="flex-1 h-px bg-[#1e1a2e]" />
               </div>
               <div className="space-y-1.5">
-                {QA_QUESTIONS.map(q => (
+                {qaQuestions.map(q => (
                   <div key={q.key}>
                     <label className="text-[9px] font-medium text-[#5a5270] mb-0.5 block">{q.label}</label>
                     <input
