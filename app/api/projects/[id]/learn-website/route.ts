@@ -151,18 +151,23 @@ async function fetchViaJina(url: string, maxChars = 2500, timeoutMs = 8000): Pro
   } catch { return null; }
 }
 
-/** Undersidor: direkthämtning med kort timeout (snabbare, undviker Vercel-timeout) */
+/** Undersidor: Jina först (parallellt = ingen extra tid), fallback direkthämtning */
 async function fetchPage(url: string): Promise<{ url: string; text: string } | null> {
+  // Prova Jina med kortare timeout (körs parallellt med andra sidor)
+  const jina = await fetchViaJina(url, 2500, 7000);
+  if (jina) return { url, text: jina };
+
+  // Fallback: direkthämtning
   try {
     const res = await fetch(url, {
       headers: { "User-Agent": "Mozilla/5.0 (compatible; receptionist-bot/1.0)" },
-      signal: AbortSignal.timeout(5000),
+      signal: AbortSignal.timeout(4000),
     });
     if (!res.ok) return null;
     const html = await res.text();
     const text = stripHtml(html);
     if (text.length < 50) return null;
-    return { url, text: text.slice(0, 1500) };
+    return { url, text: text.slice(0, 2500) };
   } catch { return null; }
 }
 
