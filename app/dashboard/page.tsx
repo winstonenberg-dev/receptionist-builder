@@ -154,9 +154,9 @@ export default function DashboardPage() {
     }
   };
 
-  const incompleteBots = projects.filter(p => completeness(p) < 100).length;
-  const readyBots      = projects.filter(p => completeness(p) === 100).length;
-  const totalBots  = projects.length;
+  const incompleteBots   = projects.filter(p => completeness(p) < 100).length;
+  const websiteDrivenBots = projects.filter(p => p.hasWebsite).length;
+  const totalBots        = projects.length;
 
   if (status === "loading") return (
     <div className="min-h-screen flex items-center justify-center bg-black">
@@ -228,8 +228,8 @@ export default function DashboardPage() {
               <p className="text-2xl font-bold text-amber-400">{incompleteBots}</p>
             </div>
             <div className="border border-white/10 rounded-2xl px-5 py-4 bg-black/40 backdrop-blur-sm">
-              <p className="text-white/40 text-xs font-medium uppercase tracking-widest mb-2">Färdiga</p>
-              <p className="text-2xl font-bold text-emerald-400">{readyBots}</p>
+              <p className="text-white/40 text-xs font-medium uppercase tracking-widest mb-2">Hemsidedrivna</p>
+              <p className="text-2xl font-bold text-emerald-400">{websiteDrivenBots}</p>
             </div>
           </div>
         )}
