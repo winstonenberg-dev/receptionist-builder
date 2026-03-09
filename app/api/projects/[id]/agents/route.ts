@@ -38,6 +38,20 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
   const websiteCtx = websiteKnowledge
     ? `\n\nKUNSKAP FRÅN HEMSIDAN:\n${websiteKnowledge.slice(0, 2000)}`
     : "";
+  // Larger slice for final synthesis (more room for facts)
+  const websiteCtxFull = websiteKnowledge
+    ? `\n\nKUNSKAP FRÅN HEMSIDAN:\n${websiteKnowledge.slice(0, 5000)}`
+    : "";
+
+  // Konkreta Q&A-svar från 30-frågor-wizarden (telefon, öppettider, priser m.m.)
+  const INTERNAL_KEYS = new Set(["website_knowledge", "faq_findings", "service_findings", "focus_findings", "season_findings", "industry_findings", "synthesis_findings"]);
+  const qaAnswers = project.answers
+    .filter(a => !INTERNAL_KEYS.has(a.questionKey) && a.answer.trim())
+    .map(a => `${a.question}: ${a.answer}`)
+    .join("\n");
+  const qaCtx = qaAnswers
+    ? `\n\nKUNDENS EGNA SVAR (konkreta uppgifter):\n${qaAnswers}`
+    : "";
 
   // ── PHASE 1: Search + 5 agents in parallel (allSettled = no total failure) ─
   const settled = await Promise.allSettled([
@@ -89,7 +103,7 @@ Svenska, konkret och handlingsorienterat.`,
     `FÖRETAG: ${bizName}
 BRANSCH: ${industry}
 PERIOD: ${currentMonth}
-
+${qaCtx}
 FAQ AGENT:\n${faqResult}
 
 BEMÖTANDE AGENT:\n${serviceResult}
@@ -104,27 +118,28 @@ BRANSCH AGENT:\n${industryResult}${websiteCtx}`,
 
   // ── PHASE 3: Generate system prompt ──────────────────────────────────────
   const systemPromptText = await ask(groq,
-    `Du är senior AI-arkitekt. Skapa en komplett system-prompt för en AI-receptionist baserat på analysen nedan.
+    `Du är senior AI-arkitekt. Skapa en komplett system-prompt för en AI-receptionist baserat på informationen nedan.
 
 KRAV:
 1. Börja: "Du är en vänlig och professionell receptionist för [företagsnamn]."
-2. Inkludera tydliga riktlinjer för kundbemötande och ton
-3. Lista vad botten ska prioritera och fokusera på
-4. Inkludera säsongsanpassning för ${currentMonth}
-5. Kunskapsregel: svara bara på det du vet, annars "Det vet jag tyvärr inte — kontakta oss direkt."
-6. Svara på svenska om inte kunden skriver annat
+2. Inkludera ALLA konkreta faktauppgifter från "KUNDENS EGNA SVAR" — telefonnummer, adress, öppettider, priser etc. måste finnas med exakt som angivna
+3. Inkludera tydliga riktlinjer för kundbemötande och ton anpassade till ${industry}
+4. Lista vad botten ska prioritera och fokusera på
+5. Inkludera säsongsanpassning för ${currentMonth}
+6. Kunskapsregel: svara bara på det du vet, annars "Det vet jag tyvärr inte — kontakta oss direkt på [telefonnummer/email]."
+7. Svara på svenska om inte kunden skriver annat
 
-VIKTIGT: Skriv BARA den färdiga system-prompten, ingen annan text.`,
+VIKTIGT: Skriv BARA den färdiga system-prompten, ingen annan text. Hitta INTE på fakta som inte finns i underlaget.`,
     `FÖRETAG: ${bizName}
 BRANSCH: ${industry}
-
-FAQ:\n${faqResult}
+${qaCtx}
+FAQ-ANALYS:\n${faqResult}
 BEMÖTANDE:\n${serviceResult}
 PRIORITET:\n${focusResult}
 SÄSONG:\n${seasonResult}
 BRANSCH:\n${industryResult}
-SYNTES:\n${synthesisResult}${websiteCtx}`,
-    1500
+SYNTES:\n${synthesisResult}${websiteCtxFull}`,
+    2000
   );
 
   const latest = await prisma.systemPrompt.findFirst({ where: { projectId: id }, orderBy: { version: "desc" } });
