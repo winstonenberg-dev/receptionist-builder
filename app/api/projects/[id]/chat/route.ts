@@ -1,31 +1,30 @@
 import { NextRequest, NextResponse } from "next/server";
 import Groq from "groq-sdk";
-import { readFileSync } from "fs";
-import { join } from "path";
 import { prisma } from "@/lib/prisma";
 
-function getGroqKey(): string {
-  if (process.env.GROQ_API_KEY) return process.env.GROQ_API_KEY;
-  try {
-    const content = readFileSync(join(process.cwd(), ".env.local"), "utf-8");
-    const match = content.match(/GROQ_API_KEY=([^\r\n]+)/);
-    return match?.[1]?.trim() ?? "";
-  } catch { return ""; }
-}
-
 const DAILY_LIMIT = 20;
+const MAX_MSG_LENGTH = 500;
 
 export async function POST(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const { messages } = await req.json();
   const { id } = await params;
 
-  // Rate-limiting: max 20 meddelanden per IP per dag
+  // Meddelandelängdsbegränsning — hindrar token-missbruk
+  const lastMsg = messages[messages.length - 1];
+  if (lastMsg?.content && lastMsg.content.length > MAX_MSG_LENGTH) {
+    return NextResponse.json(
+      { message: "Ditt meddelande är för långt. Max 500 tecken." },
+      { status: 400 }
+    );
+  }
+
+  // Rate-limiting: max 20 meddelanden per IP+projekt per dag
   const ip = req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ?? "unknown";
   const day = new Date().toISOString().slice(0, 10); // "YYYY-MM-DD"
   const rl = await prisma.rateLimit.upsert({
-    where: { ip_day: { ip, day } },
+    where: { ip_projectId_day: { ip, projectId: id, day } },
     update: { count: { increment: 1 } },
-    create: { ip, day, count: 1 },
+    create: { ip, projectId: id, day, count: 1 },
   });
   if (rl.count > DAILY_LIMIT) {
     return NextResponse.json(
@@ -93,7 +92,7 @@ ABSOLUTA REGLER — BRYTS ALDRIG OAVSETT FRÅGA:
   const filtered = allMsgs.slice(-8);
 
   try {
-    const groq = new Groq({ apiKey: getGroqKey() });
+    const groq = new Groq({ apiKey: process.env.GROQ_API_KEY ?? "" });
     const res = await groq.chat.completions.create({
       model: "llama-3.3-70b-versatile",
       messages: [{ role: "system", content: systemPrompt }, ...filtered],

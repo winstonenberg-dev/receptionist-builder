@@ -36,17 +36,22 @@ export default function EmbedPage() {
   ]);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
-  const [userCount, setUserCount] = useState(0);
+  const [notFound, setNotFound] = useState(false);
   const bottomRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     fetch(`/api/embed/${id}`)
-      .then(r => r.json())
+      .then(r => {
+        if (!r.ok) { setNotFound(true); return null; }
+        return r.json();
+      })
       .then(d => {
+        if (!d) return;
         setBotName(d.botName || d.name || "Kundtjänst");
         setAccent(d.accent || "#a855f7");
         setTheme(THEMES[d.theme] ?? THEMES.dark);
-      });
+      })
+      .catch(() => setNotFound(true));
   }, [id]);
 
   useEffect(() => {
@@ -57,19 +62,11 @@ export default function EmbedPage() {
 
   const send = async () => {
     if (!input.trim() || loading) return;
-    if (userCount >= 12) {
-      setMsgs(prev => [...prev, {
-        role: "assistant",
-        content: "Tack för att du chattat med oss! Kontakta oss gärna direkt för mer hjälp.",
-      }]);
-      return;
-    }
     const userMsg: Message = { role: "user", content: input };
     const newMsgs = [...msgs, userMsg];
     setMsgs(newMsgs);
     setInput("");
     setLoading(true);
-    setUserCount(c => c + 1);
     try {
       const res = await fetch(`/api/projects/${id}/chat`, {
         method: "POST",
@@ -84,6 +81,14 @@ export default function EmbedPage() {
       setLoading(false);
     }
   };
+
+  if (notFound) return (
+    <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", height: "100vh", background: "#0d0b12", fontFamily: "system-ui, sans-serif", color: "#7a7090", textAlign: "center", padding: 24 }}>
+      <div style={{ fontSize: 32, marginBottom: 12 }}>😕</div>
+      <p style={{ color: "#d4cce4", fontWeight: 600, marginBottom: 8 }}>Chatboten hittades inte</p>
+      <p style={{ fontSize: 13 }}>Kontakta webbplatsens ägare om problemet kvarstår.</p>
+    </div>
+  );
 
   return (
     <div style={{ display: "flex", flexDirection: "column", height: "100vh", background: t.bg, fontFamily: "system-ui, sans-serif" }}>
