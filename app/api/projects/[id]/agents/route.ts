@@ -7,7 +7,7 @@ import { prisma } from "@/lib/prisma";
 
 async function ask(groq: Groq, system: string, user: string, maxTokens = 700): Promise<string> {
   const res = await groq.chat.completions.create({
-    model: "llama-3.3-70b-versatile",
+    model: "llama-3.1-8b-instant", // 500k TPD — 70b-versatile har bara 100k/dag
     messages: [{ role: "system", content: system }, { role: "user", content: user }],
     max_tokens: maxTokens,
   });
