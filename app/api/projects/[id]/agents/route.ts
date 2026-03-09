@@ -1,18 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import Groq from "groq-sdk";
 import { tavily } from "@tavily/core";
-import { readFileSync } from "fs";
-import { join } from "path";
+import { getServerSession } from "next-auth";
+import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
-
-function getKey(name: string): string {
-  if (process.env[name]) return process.env[name]!;
-  try {
-    const content = readFileSync(join(process.cwd(), ".env.local"), "utf-8");
-    const match = content.match(new RegExp(`${name}=([^\\r\\n]+)`));
-    return match?.[1]?.trim() ?? "";
-  } catch { return ""; }
-}
 
 async function ask(groq: Groq, system: string, user: string, maxTokens = 700): Promise<string> {
   const res = await groq.chat.completions.create({
@@ -24,61 +15,69 @@ async function ask(groq: Groq, system: string, user: string, maxTokens = 700): P
 }
 
 export async function POST(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
-  const { id } = await params;
-  const groq = new Groq({ apiKey: getKey("GROQ_API_KEY") });
-  const tv = tavily({ apiKey: getKey("TAVILY_API_KEY") });
+  const session = await getServerSession(authOptions);
+  if (!session?.user?.email) return NextResponse.json({ error: "Ej inloggad" }, { status: 401 });
 
-  const project = await prisma.project.findUnique({ where: { id }, include: { answers: true } });
-  if (!project) return NextResponse.json({ error: "Projekt hittades inte" }, { status: 404 });
+  const { id } = await params;
+
+  // Auth + ownership in one query
+  const project = await prisma.project.findFirst({
+    where: { id, user: { email: session.user.email } },
+    include: { answers: true },
+  });
+  if (!project) return NextResponse.json({ error: "Projekt hittades inte eller ej behörig" }, { status: 404 });
+
+  const groq = new Groq({ apiKey: process.env.GROQ_API_KEY ?? "" });
+  const tv = tavily({ apiKey: process.env.TAVILY_API_KEY ?? "" });
 
   const industry = project.industry || "verksamhet";
   const bizName = project.name;
   const currentMonth = new Date().toLocaleString("sv-SE", { month: "long", year: "numeric" });
 
-  // Get website knowledge if available
   const websiteKnowledge = project.answers.find(a => a.questionKey === "website_knowledge")?.answer ?? "";
   const websiteCtx = websiteKnowledge
     ? `\n\nKUNSKAP FRÅN HEMSIDAN:\n${websiteKnowledge.slice(0, 2000)}`
     : "";
 
-  // ── PHASE 1: Search + 5 agents in parallel ────────────────────────────────
-  const [faqSearch, industrySearch, faqResult, serviceResult, focusResult, seasonResult, industryResult] = await Promise.all([
-
+  // ── PHASE 1: Search + 5 agents in parallel (allSettled = no total failure) ─
+  const settled = await Promise.allSettled([
     tv.search(`vanliga frågor kunder ställer ${industry} Sverige`, { maxResults: 5 }),
     tv.search(`${industry} kundservice standard kvalitet Sverige 2025`, { maxResults: 4 }),
 
-    // FAQ agent
     ask(groq,
       `Du är kundserviceexpert inom ${industry}. Lista de 8 vanligaste frågorna som kunder ställer, med korta svar. Numrerad lista på svenska.`,
       `Företag: ${bizName}, Bransch: ${industry}${websiteCtx}`
     ),
-
-    // Bemötande agent
     ask(groq,
       `Du är expert på kundbemötande och kommunikation. Ge 6 konkreta riktlinjer för hur en AI-receptionist ska bemöta kunder inom ${industry}: ton, språk, empati, hantering av missnöjda kunder, hur man avslutar konversationer professionellt. Svenska.`,
       `Företag: ${bizName}${websiteCtx}`
     ),
-
-    // Fokus/Prioritet agent
     ask(groq,
       `Du är strategikonsult för AI-chatbotar. Analysera vad en AI-receptionist för ett ${industry} bör prioritera. Ge 6 konkreta prioriteringar: vad ska botten alltid fråga om, vad ska den alltid nämna, hur ska den hantera bokningar, vad ska den eskalera till personal. Svenska, konkret.`,
       `Företag: ${bizName}${websiteCtx}`
     ),
-
-    // Säsong agent
     ask(groq,
       `Du är expert på säsongsanpassad kommunikation. Det är ${currentMonth}. Ge 4 konkreta tips för hur chatboten ska anpassas till denna tid på året för ett ${industry}. Vad är aktuellt nu? Vad bör botten proaktivt nämna? Svenska.`,
       `Företag: ${bizName}${websiteCtx}`
     ),
-
-    // Bransch agent (uses search results)
     ask(groq,
       `Du är branschexpert inom ${industry}. Beskriv 5 viktiga branschspecifika saker en AI-receptionist måste känna till och kommunicera korrekt. Inkludera branschtermer, vanliga missuppfattningar, och vad som skiljer bra från dålig service i branschen. Svenska.`,
       `Företag: ${bizName}${websiteCtx}`
     ),
   ]);
 
-  // ── PHASE 2: Synthesis agent (needs all other results) ────────────────────
+  const val = <T>(i: number, fallback: T): T =>
+    settled[i].status === "fulfilled" ? (settled[i] as PromiseFulfilledResult<T>).value : fallback;
+
+  const faqSearch      = val(0, { results: [] } as { results: unknown[] });
+  const industrySearch = val(1, { results: [] } as { results: unknown[] });
+  const faqResult      = val(2, "");
+  const serviceResult  = val(3, "");
+  const focusResult    = val(4, "");
+  const seasonResult   = val(5, "");
+  const industryResult = val(6, "");
+
+  // ── PHASE 2: Synthesis agent ──────────────────────────────────────────────
   const synthesisResult = await ask(groq,
     `Du är senior AI-konsult specialiserad på konversations-AI. Din uppgift är att analysera alla agenters resultat och skapa en sammanfattning med konkreta förbättringsförslag för AI-receptionisten. Strukturera som:
 1. STYRKOR: Vad botten redan borde hantera bra baserat på kunskapen
@@ -133,14 +132,13 @@ SYNTES:\n${synthesisResult}${websiteCtx}`,
     data: { projectId: id, prompt: systemPromptText, version: (latest?.version ?? 0) + 1 },
   });
 
-  // Spara alla agenters resultat i databasen
   const agentSaves = [
-    { key: "faq_findings",       question: "FAQ-agent",       answer: faqResult },
-    { key: "service_findings",   question: "Ton-agent",       answer: serviceResult },
+    { key: "faq_findings",       question: "FAQ-agent",        answer: faqResult },
+    { key: "service_findings",   question: "Ton-agent",        answer: serviceResult },
     { key: "focus_findings",     question: "Prioritets-agent", answer: focusResult },
-    { key: "season_findings",    question: "Säsongs-agent",   answer: seasonResult },
-    { key: "industry_findings",  question: "Bransch-agent",   answer: industryResult },
-    { key: "synthesis_findings", question: "Syntes-agent",    answer: synthesisResult },
+    { key: "season_findings",    question: "Säsongs-agent",    answer: seasonResult },
+    { key: "industry_findings",  question: "Bransch-agent",    answer: industryResult },
+    { key: "synthesis_findings", question: "Syntes-agent",     answer: synthesisResult },
   ];
   await Promise.all(agentSaves.map(a =>
     prisma.answer.upsert({

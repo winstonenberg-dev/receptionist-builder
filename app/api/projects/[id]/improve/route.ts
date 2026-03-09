@@ -1,24 +1,23 @@
 import { NextRequest, NextResponse } from "next/server";
 import Groq from "groq-sdk";
-import { readFileSync } from "fs";
-import { join } from "path";
+import { getServerSession } from "next-auth";
+import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 
-function getGroqKey(): string {
-  if (process.env.GROQ_API_KEY) return process.env.GROQ_API_KEY;
-  try {
-    const content = readFileSync(join(process.cwd(), ".env.local"), "utf-8");
-    const match = content.match(/GROQ_API_KEY=([^\r\n]+)/);
-    return match?.[1]?.trim() ?? "";
-  } catch { return ""; }
-}
-
 export async function POST(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  const session = await getServerSession(authOptions);
+  if (!session?.user?.email) return NextResponse.json({ error: "Ej inloggad" }, { status: 401 });
+
   const { instruction } = await req.json();
   const { id } = await params;
 
-  const project = await prisma.project.findUnique({ where: { id } });
-  if (project?.promptLocked) {
+  // Auth + ownership in one query
+  const project = await prisma.project.findFirst({
+    where: { id, user: { email: session.user.email } },
+  });
+  if (!project) return NextResponse.json({ error: "Projekt hittades inte eller ej behörig" }, { status: 404 });
+
+  if (project.promptLocked) {
     return NextResponse.json({ error: "Prompten är låst. Lås upp den först." }, { status: 403 });
   }
 
@@ -31,7 +30,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
   const nextVersion = (latest?.version ?? 0) + 1;
 
   try {
-    const groq = new Groq({ apiKey: getGroqKey() });
+    const groq = new Groq({ apiKey: process.env.GROQ_API_KEY ?? "" });
     const res = await groq.chat.completions.create({
       model: "llama-3.3-70b-versatile",
       messages: [
@@ -62,7 +61,7 @@ ABSOLUTA REGLER SOM ALDRIG FÅR BRYTAS:
     });
 
     return NextResponse.json({ prompt: newPrompt, version: nextVersion });
-  } catch (e) {
-    return NextResponse.json({ error: String(e) }, { status: 500 });
+  } catch {
+    return NextResponse.json({ error: "Internt fel — försök igen" }, { status: 500 });
   }
 }

@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import Groq from "groq-sdk";
+import { getServerSession } from "next-auth";
+import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 
 // ── Regelbaserad scoring — 100% deterministisk, samma resultat varje körning ──
@@ -273,18 +275,22 @@ export async function POST(
   _req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  const session = await getServerSession(authOptions);
+  if (!session?.user?.email) return NextResponse.json({ error: "Ej inloggad" }, { status: 401 });
+
   const { id } = await params;
   const groq = new Groq({ apiKey: process.env.GROQ_API_KEY ?? "" });
 
-  const project = await prisma.project.findUnique({
-    where: { id },
+  // Auth + ownership in one query
+  const project = await prisma.project.findFirst({
+    where: { id, user: { email: session.user.email } },
     include: {
       answers: true,
       prompts: { orderBy: { version: "desc" }, take: 1 },
     },
   });
 
-  if (!project) return NextResponse.json({ error: "Projekt hittades inte" }, { status: 404 });
+  if (!project) return NextResponse.json({ error: "Projekt hittades inte eller ej behörig" }, { status: 404 });
 
   // Välj rätt scenariolista baserat på bransch
   const SCENARIOS = project.industry === "restaurang" ? RESTAURANTS : CLUBS;

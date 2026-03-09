@@ -1,16 +1,23 @@
 import { NextRequest, NextResponse } from "next/server";
 import Groq from "groq-sdk";
-import { readFileSync } from "fs";
-import { join } from "path";
+import { getServerSession } from "next-auth";
+import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 
-function getKey(name: string): string {
-  if (process.env[name]) return process.env[name]!;
+/** Block SSRF: only allow public http/https URLs */
+function isSafeUrl(rawUrl: string): boolean {
   try {
-    const content = readFileSync(join(process.cwd(), ".env.local"), "utf-8");
-    const match = content.match(new RegExp(`${name}=([^\\r\\n]+)`));
-    return match?.[1]?.trim() ?? "";
-  } catch { return ""; }
+    const u = new URL(rawUrl);
+    if (u.protocol !== "http:" && u.protocol !== "https:") return false;
+    const h = u.hostname.toLowerCase();
+    if (h === "localhost" || h === "127.0.0.1" || h === "::1" || h === "0.0.0.0") return false;
+    if (/^10\./.test(h)) return false;                          // RFC 1918
+    if (/^192\.168\./.test(h)) return false;                   // RFC 1918
+    if (/^172\.(1[6-9]|2\d|3[01])\./.test(h)) return false;   // RFC 1918
+    if (/^169\.254\./.test(h)) return false;                   // link-local
+    if (h.endsWith(".local") || h.endsWith(".internal") || h.endsWith(".localhost")) return false;
+    return true;
+  } catch { return false; }
 }
 
 function stripHtml(html: string): string {
@@ -45,7 +52,6 @@ function extractInternalLinks(html: string, baseUrl: string): string[] {
     } catch { /* ignore */ }
   }
 
-  // Prioritera sidor med relevant innehåll
   const priority = [
     "kontakt", "contact", "priser", "pris", "price",
     "boka", "bokning", "book", "reservation",
@@ -60,7 +66,7 @@ function extractInternalLinks(html: string, baseUrl: string): string[] {
     return (aScore === -1 ? 999 : aScore) - (bScore === -1 ? 999 : bScore);
   });
 
-  return links.slice(0, 15); // Upp till 15 undersidor
+  return links.slice(0, 15);
 }
 
 async function fetchPage(url: string): Promise<{ url: string; text: string } | null> {
@@ -73,16 +79,26 @@ async function fetchPage(url: string): Promise<{ url: string; text: string } | n
     const html = await res.text();
     const text = stripHtml(html);
     if (text.length < 50) return null;
-    return { url, text: text.slice(0, 2000) }; // 2000 per sida → fler sidor ryms
+    return { url, text: text.slice(0, 2000) };
   } catch { return null; }
 }
 
 export async function POST(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
+    const session = await getServerSession(authOptions);
+    if (!session?.user?.email) return NextResponse.json({ error: "Ej inloggad" }, { status: 401 });
+
     const { url } = await req.json();
     const { id } = await params;
 
     if (!url) return NextResponse.json({ error: "URL krävs" }, { status: 400 });
+    if (!isSafeUrl(url)) return NextResponse.json({ error: "Ogiltig eller ej tillåten URL" }, { status: 400 });
+
+    // Auth + ownership in one query
+    const project = await prisma.project.findFirst({
+      where: { id, user: { email: session.user.email } },
+    });
+    if (!project) return NextResponse.json({ error: "Projekt hittades inte eller ej behörig" }, { status: 404 });
 
     await prisma.project.update({ where: { id }, data: { websiteUrl: url } });
 
@@ -116,7 +132,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
 
     const pagesRead = 1 + validSubs.length;
 
-    const groq = new Groq({ apiKey: getKey("GROQ_API_KEY") });
+    const groq = new Groq({ apiKey: process.env.GROQ_API_KEY ?? "" });
 
     // 4. Strukturerad faktaextraktion — bevarar exakta värden, ingen fri sammanfattning
     const knowledgeRes = await groq.chat.completions.create({
@@ -186,6 +202,6 @@ ${allContent}`,
 
   } catch (err) {
     console.error("learn-website error:", err);
-    return NextResponse.json({ error: "Internt fel: " + String(err instanceof Error ? err.message : err) }, { status: 500 });
+    return NextResponse.json({ error: "Internt fel — försök igen" }, { status: 500 });
   }
 }
