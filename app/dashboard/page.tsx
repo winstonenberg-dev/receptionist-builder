@@ -126,6 +126,7 @@ export default function DashboardPage() {
   };
 
   const activeBots  = projects.filter(p => p.latestVersion).length;
+  const readyBots   = projects.filter(p => completeness(p) === 100).length;
   const totalBots   = projects.length;
 
   if (status === "loading") return (
@@ -176,8 +177,8 @@ export default function DashboardPage() {
               <p className="text-2xl font-bold text-fuchsia-400">{activeBots}</p>
             </div>
             <div className="bg-[#14111e] border border-[#2a2440] rounded-2xl px-5 py-4">
-              <p className="text-[#7a7090] text-xs font-medium uppercase tracking-wider mb-1">Månadsintäkt</p>
-              <p className="text-2xl font-bold text-emerald-400">{(activeBots * 2000).toLocaleString("sv-SE")} kr</p>
+              <p className="text-[#7a7090] text-xs font-medium uppercase tracking-wider mb-1">Färdiga (100%)</p>
+              <p className="text-2xl font-bold text-emerald-400">{readyBots}</p>
             </div>
           </div>
         )}
