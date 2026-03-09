@@ -55,10 +55,18 @@ function extractInternalLinks(html: string, baseUrl: string): string[] {
   const priority = [
     "kontakt", "contact", "priser", "pris", "price",
     "boka", "bokning", "book", "reservation",
-    "faciliteter", "anlaggning", "bana", "course",
+    // golf
+    "faciliteter", "anlaggning", "bana", "course", "golf",
+    // hotell
+    "rum", "svit", "suite", "accommodation", "boende",
+    "bekvamligheter", "faciliteter", "amenities",
+    "restaurang", "bar", "mat", "food", "frukost",
+    "gym", "spa", "pool", "relax",
+    "parkering", "parking",
+    "husdjur", "pet",
+    // övrigt
     "om-oss", "about", "info", "tjanster", "service",
-    "restaurang", "mat", "food", "golf", "personal",
-    "oppettider", "hitta", "karta",
+    "personal", "oppettider", "hitta", "karta",
   ];
   links.sort((a, b) => {
     const aScore = priority.findIndex(k => a.toLowerCase().includes(k));
@@ -67,6 +75,64 @@ function extractInternalLinks(html: string, baseUrl: string): string[] {
   });
 
   return links.slice(0, 15);
+}
+
+/** Branschanpassade extraktionskategorier */
+function getIndustryCategories(industry: string): string {
+  switch (industry) {
+    case "hotell":
+      return `🛏️ RUM & BOENDE
+  - Rumstyper (enkelrum, dubbelrum, svit, familjerum), priser, vad som ingår, max gäster, tillgänglighetsrum
+
+🍽️ MAT & DRYCK
+  - Restaurang (namn, meny, öppettider), bar, frukost (ingår? pris?), rumsservice, specialkost/allergier
+
+🏋️ BEKVÄMLIGHETER & FACILITETER
+  - Gym, pool, spa, relax, bastu, konferensrum, mötesutrustning — vad ingår, vad kostar extra
+
+🚗 PARKERING & TRANSPORT
+  - Parkering (pris, antal platser, inomhus/utomhus, EV-laddning), avstånd till station/flygplats, shuttle
+
+🐾 HUSDJURSPOLICY
+  - Husdjur tillåtna (ja/nej), kostnad, regler, begränsningar
+
+♻️ MILJÖ & CERTIFIERING
+  - Miljömärkningar (Svanen, Green Key etc.), hållbarhetsarbete, certifieringar`;
+
+    case "restaurang":
+      return `🍽️ MENY & MATUTBUD
+  - Typer av rätter, kök/matlagningsstil, säsongsmeny, specialrätter, vegetariskt/veganskt/glutenfritt
+
+🍷 DRYCK & BAR
+  - Bar (namn, öppettider), vinlista, alkoholfritt alternativ, happy hour
+
+🎉 BORD & PRIVATA TILLSTÄLLNINGAR
+  - Bordsbokning, sittplatsantal, privata rum, catering, events, konferens`;
+
+    case "golf":
+      return `⛳ BANA & SPEL
+  - Antal hål, par, längd, banrating, slope, antal banor
+
+🏌️ FACILITETER
+  - Golfbilar (antal, pris), driving range, putting green, pro shop, omklädningsrum, dusch, locker
+
+📋 REGLER & KRAV
+  - Handicapkrav, klädkod, gästpolicy, tee time-bokning`;
+
+    case "frisör":
+      return `✂️ TJÄNSTER & BEHANDLINGAR
+  - Klippning, färgning, slingor, styling, skäggtrimning — priser per tjänst
+
+💆 EXTRA TJÄNSTER
+  - Manikyr, pedikyr, bröllopspaket, andra behandlingar`;
+
+    default:
+      return `🏢 TJÄNSTER & ERBJUDANDEN
+  - Vad erbjuds, priser, paket, vad ingår
+
+🏗️ FACILITETER & UTRYMMEN
+  - Vad finns på plats, utrustning, lokaler, tillgänglighet`;
+  }
 }
 
 /** Jina AI Reader — renderar JS-sidor, gratis utan API-nyckel */
@@ -115,6 +181,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
     // Auth + ownership in one query
     const project = await prisma.project.findFirst({
       where: { id, user: { email: session.user.email } },
+      select: { id: true, industry: true, websiteUrl: true },
     });
     if (!project) return NextResponse.json({ error: "Projekt hittades inte eller ej behörig" }, { status: 404 });
 
@@ -157,7 +224,10 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
 
     const groq = new Groq({ apiKey: process.env.GROQ_API_KEY ?? "" });
 
-    // 4. Strukturerad faktaextraktion — bevarar exakta värden, ingen fri sammanfattning
+    // 4. Strukturerad faktaextraktion — branschanpassad, bevarar exakta värden
+    const industry = project.industry ?? "verksamhet";
+    const industryCategories = getIndustryCategories(industry);
+
     const knowledgeRes = await groq.chat.completions.create({
       model: "llama-3.3-70b-versatile",
       messages: [
@@ -180,21 +250,17 @@ KATEGORIER ATT LETA I:
   - Adress, telefonnummer, email, webbplats
 
 🕐 ÖPPETTIDER
-  - Exakta öppettider för bana, reception, restaurang, shop — per dag/säsong
+  - Exakta öppettider per avdelning och dag/säsong
 
 💰 PRISER
-  - Exakta priser i kr för greenfee, medlemskap, golfbil, driving range, lektioner, restaurang, etc.
+  - Exakta priser i kr för alla tjänster och produkter
 
-⛳ FACILITETER & UTRUSTNING
-  - Vad som finns: golfbilar (antal, pris), driving range, putting green, restaurang, pro shop, omklädningsrum, dusch, locker, etc.
+${industryCategories}
 
 📋 BOKNING & REGLER
-  - Hur man bokar (telefon/hemsida/app), avbokningsregler, handicapkrav, klädkod, husdjur
+  - Hur man bokar, avbokningsregler, policys, krav
 
-🏌️ BANA & SPEL
-  - Antal hål, par, längd, banrating, antal banor
-
-🎁 ERBJUDANDEN
+🎁 ERBJUDANDEN & PAKET
   - Rabatter, paket, lojalitetsprogram, presentkort, grupperbjudanden
 
 📞 FAQ
