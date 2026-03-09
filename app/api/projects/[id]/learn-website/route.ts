@@ -178,10 +178,10 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
     if (!url) return NextResponse.json({ error: "URL krävs" }, { status: 400 });
     if (!isSafeUrl(url)) return NextResponse.json({ error: "Ogiltig eller ej tillåten URL" }, { status: 400 });
 
-    // Auth + ownership in one query
+    // Auth + ownership in one query, include answers for location context
     const project = await prisma.project.findFirst({
       where: { id, user: { email: session.user.email } },
-      select: { id: true, industry: true, websiteUrl: true },
+      select: { id: true, name: true, industry: true, websiteUrl: true, answers: { select: { questionKey: true, answer: true } } },
     });
     if (!project) return NextResponse.json({ error: "Projekt hittades inte eller ej behörig" }, { status: 404 });
 
@@ -228,16 +228,28 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
     const industry = project.industry ?? "verksamhet";
     const industryCategories = getIndustryCategories(industry);
 
+    // Bygg platskontext från Q&A-svar (adress, stad, postnummer)
+    const locationAnswer = project.answers?.find(a =>
+      ["adress", "address", "stad", "ort", "city", "location"].some(k => a.questionKey.toLowerCase().includes(k))
+    )?.answer ?? "";
+    const bizName = project.name ?? "";
+    const locationCtx = locationAnswer
+      ? `\nDETTA GÄLLER SPECIFIKT: "${bizName}" på "${locationAnswer}". Extrahera KUN information om DENNA specifika plats. Ignorera uppgifter om andra städer, filialer eller platser.`
+      : bizName
+      ? `\nDETTA GÄLLER SPECIFIKT: "${bizName}". Om det finns flera filialer — extrahera bara information om denna verksamhet, inte om kedjan i allmänhet.`
+      : "";
+
     const knowledgeRes = await groq.chat.completions.create({
       model: "llama-3.3-70b-versatile",
       messages: [
         {
           role: "system",
-          content: `Du är ett precisionsinstrument för faktaextraktion. Din enda uppgift är att hitta och lista EXAKTA faktauppgifter från hemsidan.
+          content: `Du är ett precisionsinstrument för faktaextraktion. Din enda uppgift är att hitta och lista EXAKTA faktauppgifter från hemsidan.${locationCtx}
 
 REGLER:
 - Skriv BARA fakta som faktiskt finns på hemsidan — aldrig gissningar
 - Bevara EXAKTA värden: priser i kr, tider i HH:MM, telefonnummer, adresser
+- Om det finns uppgifter om flera orter/filialer — ta KUN med uppgifter om den specificerade platsen
 - Om ett faktum inte finns → skriv det inte
 - Inga fluffiga beskrivningar — bara konkreta fakta`,
         },
