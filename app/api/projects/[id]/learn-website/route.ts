@@ -69,7 +69,25 @@ function extractInternalLinks(html: string, baseUrl: string): string[] {
   return links.slice(0, 15);
 }
 
+/** Jina AI Reader — renderar JS-sidor, gratis utan API-nyckel */
+async function fetchViaJina(url: string, maxChars = 2000): Promise<string | null> {
+  try {
+    const res = await fetch(`https://r.jina.ai/${url}`, {
+      headers: { "Accept": "text/plain", "X-Timeout": "10" },
+      signal: AbortSignal.timeout(15000),
+    });
+    if (!res.ok) return null;
+    const text = (await res.text()).trim();
+    return text.length > 100 ? text.slice(0, maxChars) : null;
+  } catch { return null; }
+}
+
 async function fetchPage(url: string): Promise<{ url: string; text: string } | null> {
+  // Prova Jina först (klarar JS-renderade sidor)
+  const jina = await fetchViaJina(url);
+  if (jina) return { url, text: jina };
+
+  // Fallback: direkthämtning + strippa HTML
   try {
     const res = await fetch(url, {
       headers: { "User-Agent": "Mozilla/5.0 (compatible; receptionist-bot/1.0)" },
@@ -102,21 +120,26 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
 
     await prisma.project.update({ where: { id }, data: { websiteUrl: url } });
 
-    // 1. Hämta startsidan
+    // 1. Hämta startsidan — hämta råHTML för länkextraktion parallellt med Jina för text
     let mainHtml = "";
-    try {
-      const res = await fetch(url, {
+    let mainText = "";
+
+    const [htmlResult, jinaResult] = await Promise.allSettled([
+      fetch(url, {
         headers: { "User-Agent": "Mozilla/5.0 (compatible; receptionist-bot/1.0)" },
         signal: AbortSignal.timeout(12000),
-      });
-      mainHtml = await res.text();
-    } catch {
-      return NextResponse.json({ error: "Kunde inte hämta hemsidan. Kontrollera URL:en." }, { status: 400 });
-    }
+      }).then(r => r.text()).catch(() => ""),
+      fetchViaJina(url, 3000),
+    ]);
 
-    const mainText = stripHtml(mainHtml).slice(0, 2000);
+    mainHtml = htmlResult.status === "fulfilled" ? htmlResult.value : "";
+    const jinaText = jinaResult.status === "fulfilled" ? jinaResult.value : null;
+
+    // Använd Jina-text om tillgänglig, annars strippa HTML
+    mainText = jinaText ?? stripHtml(mainHtml).slice(0, 3000);
+
     if (mainText.length < 50) {
-      return NextResponse.json({ error: "Hemsidan verkar tom eller blockerar läsning." }, { status: 400 });
+      return NextResponse.json({ error: "Hemsidan verkar tom eller blockerar läsning. Prova att klistra in URL:en utan www, eller kontakta supporten." }, { status: 400 });
     }
 
     // 2. Hämta upp till 15 undersidor parallellt
