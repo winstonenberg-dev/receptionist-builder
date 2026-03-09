@@ -311,7 +311,8 @@ ${allContent}`,
     return NextResponse.json({ pagesRead, summary: knowledge });
 
   } catch (err) {
-    console.error("learn-website error:", err);
-    return NextResponse.json({ error: "Internt fel — försök igen" }, { status: 500 });
+    const detail = err instanceof Error ? err.message : String(err);
+    console.error("learn-website error:", detail);
+    return NextResponse.json({ error: `Fel: ${detail.slice(0, 200)}` }, { status: 500 });
   }
 }
