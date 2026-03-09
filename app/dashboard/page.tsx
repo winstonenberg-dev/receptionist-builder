@@ -167,27 +167,28 @@ export default function DashboardPage() {
   const firstName = session?.user?.name?.split(" ")[0] ?? session?.user?.email?.split("@")[0] ?? "";
 
   return (
-    <div className="min-h-screen bg-black text-white relative overflow-x-hidden">
+    <div className="min-h-screen bg-black text-white">
 
-      {/* Golden blobs */}
-      <div className="fixed inset-0 pointer-events-none" aria-hidden style={{ zIndex: 0 }}>
-        {BLOBS.map((b, i) => (
-          <div
-            key={i}
-            style={{
-              position: "absolute",
-              top: b.top,
-              left: b.left,
-              width: b.w,
-              height: b.h,
-              borderRadius: "50%",
-              filter: "blur(72px)",
-              background: `radial-gradient(ellipse, rgba(193,154,65,${b.opacity}) 0%, transparent 70%)`,
-              transform: "translate(-50%, -50%)",
-            }}
-          />
-        ))}
-      </div>
+      {/* Golden blobs — fixed to viewport, outside overflow constraints */}
+      {BLOBS.map((b, i) => (
+        <div
+          key={i}
+          aria-hidden
+          style={{
+            position: "fixed",
+            top: b.top,
+            left: b.left,
+            width: b.w,
+            height: b.h,
+            borderRadius: "50%",
+            filter: "blur(80px)",
+            background: `radial-gradient(ellipse, rgba(193,154,65,${b.opacity}) 0%, transparent 70%)`,
+            transform: "translate(-50%, -50%)",
+            pointerEvents: "none",
+            zIndex: 0,
+          }}
+        />
+      ))}
 
       {deleteTarget && (
         <DeleteModal name={deleteTarget.name} onConfirm={handleDelete} onCancel={() => setDeleteTarget(null)} loading={deleting} />
@@ -205,7 +206,7 @@ export default function DashboardPage() {
         </div>
       </nav>
 
-      <div className="max-w-5xl mx-auto px-6 py-10 relative z-0">
+      <div className="max-w-5xl mx-auto px-6 py-10 relative" style={{ zIndex: 1 }}>
 
         {/* Heading */}
         <div className="mb-10">
