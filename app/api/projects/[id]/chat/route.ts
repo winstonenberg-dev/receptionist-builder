@@ -13,9 +13,26 @@ function getGroqKey(): string {
   } catch { return ""; }
 }
 
+const DAILY_LIMIT = 20;
+
 export async function POST(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const { messages } = await req.json();
   const { id } = await params;
+
+  // Rate-limiting: max 20 meddelanden per IP per dag
+  const ip = req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ?? "unknown";
+  const day = new Date().toISOString().slice(0, 10); // "YYYY-MM-DD"
+  const rl = await prisma.rateLimit.upsert({
+    where: { ip_day: { ip, day } },
+    update: { count: { increment: 1 } },
+    create: { ip, day, count: 1 },
+  });
+  if (rl.count > DAILY_LIMIT) {
+    return NextResponse.json(
+      { message: "Du har nått dagens gräns på 20 meddelanden. Kontakta oss direkt om du behöver mer hjälp!" },
+      { status: 429 }
+    );
+  }
 
   const project = await prisma.project.findUnique({
     where: { id },

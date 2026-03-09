@@ -50,3 +50,13 @@ model SystemPrompt {
   version   Int      @default(1)
   updatedAt DateTime @updatedAt
 }
+
+model RateLimit {
+  id        String   @id @default(cuid())
+  ip        String
+  day       String
+  count     Int      @default(0)
+  updatedAt DateTime @updatedAt
+
+  @@unique([ip, day])
+}
