@@ -33,30 +33,30 @@ const INDUSTRY_LABEL: Record<string, string> = {
 
 // 24 golden blobs — varied sizes and positions
 const BLOBS = [
-  { top:  "3%",  left:  "8%", w: 500, h: 320, opacity: 0.13 },
-  { top:  "6%",  left: "58%", w: 600, h: 380, opacity: 0.10 },
-  { top:  "2%",  left: "85%", w: 300, h: 220, opacity: 0.11 },
-  { top: "18%",  left: "28%", w: 220, h: 160, opacity: 0.09 },
-  { top: "22%",  left: "74%", w: 380, h: 260, opacity: 0.10 },
-  { top: "30%",  left:  "4%", w: 280, h: 200, opacity: 0.09 },
-  { top: "35%",  left: "90%", w: 240, h: 170, opacity: 0.08 },
-  { top: "38%",  left: "44%", w: 560, h: 340, opacity: 0.08 },
-  { top: "45%",  left: "18%", w: 180, h: 130, opacity: 0.11 },
-  { top: "48%",  left: "66%", w: 360, h: 240, opacity: 0.09 },
-  { top: "52%",  left: "91%", w: 220, h: 150, opacity: 0.09 },
-  { top: "55%",  left:  "2%", w: 420, h: 280, opacity: 0.08 },
-  { top: "58%",  left: "36%", w: 200, h: 140, opacity: 0.10 },
-  { top: "60%",  left: "79%", w: 460, h: 300, opacity: 0.09 },
-  { top: "65%",  left: "51%", w: 240, h: 160, opacity: 0.08 },
-  { top: "68%",  left: "12%", w: 340, h: 230, opacity: 0.11 },
-  { top: "72%",  left: "68%", w: 200, h: 150, opacity: 0.09 },
-  { top: "75%",  left: "89%", w: 400, h: 260, opacity: 0.09 },
-  { top: "78%",  left: "25%", w: 520, h: 320, opacity: 0.08 },
-  { top: "82%",  left: "59%", w: 160, h: 120, opacity: 0.11 },
-  { top: "85%",  left:  "4%", w: 260, h: 180, opacity: 0.09 },
-  { top: "88%",  left: "43%", w: 360, h: 240, opacity: 0.09 },
-  { top: "92%",  left: "76%", w: 300, h: 200, opacity: 0.10 },
-  { top: "95%",  left: "14%", w: 460, h: 280, opacity: 0.09 },
+  { top:  "3%",  left:  "8%", w: 700, h: 450, opacity: 0.50 },
+  { top:  "6%",  left: "58%", w: 800, h: 500, opacity: 0.45 },
+  { top:  "2%",  left: "85%", w: 400, h: 280, opacity: 0.48 },
+  { top: "18%",  left: "28%", w: 300, h: 200, opacity: 0.40 },
+  { top: "22%",  left: "74%", w: 500, h: 340, opacity: 0.42 },
+  { top: "30%",  left:  "4%", w: 380, h: 260, opacity: 0.40 },
+  { top: "35%",  left: "90%", w: 320, h: 220, opacity: 0.38 },
+  { top: "38%",  left: "44%", w: 700, h: 440, opacity: 0.35 },
+  { top: "45%",  left: "18%", w: 260, h: 180, opacity: 0.44 },
+  { top: "48%",  left: "66%", w: 480, h: 320, opacity: 0.40 },
+  { top: "52%",  left: "91%", w: 300, h: 200, opacity: 0.40 },
+  { top: "55%",  left:  "2%", w: 540, h: 360, opacity: 0.38 },
+  { top: "58%",  left: "36%", w: 280, h: 190, opacity: 0.42 },
+  { top: "60%",  left: "79%", w: 580, h: 380, opacity: 0.40 },
+  { top: "65%",  left: "51%", w: 320, h: 220, opacity: 0.38 },
+  { top: "68%",  left: "12%", w: 440, h: 300, opacity: 0.44 },
+  { top: "72%",  left: "68%", w: 280, h: 200, opacity: 0.40 },
+  { top: "75%",  left: "89%", w: 520, h: 340, opacity: 0.40 },
+  { top: "78%",  left: "25%", w: 660, h: 420, opacity: 0.38 },
+  { top: "82%",  left: "59%", w: 240, h: 160, opacity: 0.44 },
+  { top: "85%",  left:  "4%", w: 360, h: 240, opacity: 0.40 },
+  { top: "88%",  left: "43%", w: 480, h: 320, opacity: 0.40 },
+  { top: "92%",  left: "76%", w: 400, h: 270, opacity: 0.42 },
+  { top: "95%",  left: "14%", w: 580, h: 360, opacity: 0.40 },
 ];
 
 function completeness(p: Project): number {
@@ -182,10 +182,10 @@ export default function DashboardPage() {
             height: b.h,
             borderRadius: "50%",
             filter: "blur(80px)",
-            background: `radial-gradient(ellipse, rgba(193,154,65,${b.opacity}) 0%, transparent 70%)`,
+            background: `radial-gradient(ellipse, rgba(255,200,50,${b.opacity}) 0%, transparent 70%)`,
             transform: "translate(-50%, -50%)",
             pointerEvents: "none",
-            zIndex: 0,
+            zIndex: 1,
           }}
         />
       ))}
@@ -206,7 +206,7 @@ export default function DashboardPage() {
         </div>
       </nav>
 
-      <div className="max-w-5xl mx-auto px-6 py-10 relative" style={{ zIndex: 1 }}>
+      <div className="max-w-5xl mx-auto px-6 py-10 relative" style={{ zIndex: 2 }}>
 
         {/* Heading */}
         <div className="mb-10">
