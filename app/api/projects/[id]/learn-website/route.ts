@@ -4,6 +4,9 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 
+// Vercel Pro: allow up to 60s (hobby plan is capped at 10s regardless)
+export const maxDuration = 60;
+
 /** Block SSRF: only allow public http/https URLs */
 function isSafeUrl(rawUrl: string): boolean {
   try {
@@ -74,7 +77,7 @@ function extractInternalLinks(html: string, baseUrl: string): string[] {
     return (aScore === -1 ? 999 : aScore) - (bScore === -1 ? 999 : bScore);
   });
 
-  return links.slice(0, 15);
+  return links.slice(0, 6);
 }
 
 /** Branschanpassade extraktionskategorier */
@@ -136,11 +139,11 @@ function getIndustryCategories(industry: string): string {
 }
 
 /** Jina AI Reader — renderar JS-sidor, gratis utan API-nyckel */
-async function fetchViaJina(url: string, maxChars = 2000): Promise<string | null> {
+async function fetchViaJina(url: string, maxChars = 2500, timeoutMs = 8000): Promise<string | null> {
   try {
     const res = await fetch(`https://r.jina.ai/${url}`, {
-      headers: { "Accept": "text/plain", "X-Timeout": "10" },
-      signal: AbortSignal.timeout(15000),
+      headers: { "Accept": "text/plain", "X-Timeout": "7" },
+      signal: AbortSignal.timeout(timeoutMs),
     });
     if (!res.ok) return null;
     const text = (await res.text()).trim();
@@ -148,22 +151,18 @@ async function fetchViaJina(url: string, maxChars = 2000): Promise<string | null
   } catch { return null; }
 }
 
+/** Undersidor: direkthämtning med kort timeout (snabbare, undviker Vercel-timeout) */
 async function fetchPage(url: string): Promise<{ url: string; text: string } | null> {
-  // Prova Jina först (klarar JS-renderade sidor)
-  const jina = await fetchViaJina(url);
-  if (jina) return { url, text: jina };
-
-  // Fallback: direkthämtning + strippa HTML
   try {
     const res = await fetch(url, {
       headers: { "User-Agent": "Mozilla/5.0 (compatible; receptionist-bot/1.0)" },
-      signal: AbortSignal.timeout(8000),
+      signal: AbortSignal.timeout(5000),
     });
     if (!res.ok) return null;
     const html = await res.text();
     const text = stripHtml(html);
     if (text.length < 50) return null;
-    return { url, text: text.slice(0, 2000) };
+    return { url, text: text.slice(0, 1500) };
   } catch { return null; }
 }
 
@@ -194,9 +193,9 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
     const [htmlResult, jinaResult] = await Promise.allSettled([
       fetch(url, {
         headers: { "User-Agent": "Mozilla/5.0 (compatible; receptionist-bot/1.0)" },
-        signal: AbortSignal.timeout(12000),
+        signal: AbortSignal.timeout(7000),
       }).then(r => r.text()).catch(() => ""),
-      fetchViaJina(url, 3000),
+      fetchViaJina(url, 3000, 9000),
     ]);
 
     mainHtml = htmlResult.status === "fulfilled" ? htmlResult.value : "";
