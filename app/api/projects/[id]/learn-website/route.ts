@@ -234,9 +234,14 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
     )?.answer ?? "";
     const bizName = project.name ?? "";
     const locationCtx = locationAnswer
-      ? `\nDETTA GÄLLER SPECIFIKT: "${bizName}" på "${locationAnswer}". Extrahera KUN information om DENNA specifika plats. Ignorera uppgifter om andra städer, filialer eller platser.`
+      ? `\nDETTA GÄLLER: "${bizName}" på "${locationAnswer}".
+REGLER FÖR KEDJOR/FLERA FILIALER:
+- Kontaktuppgifter (adress, telefon, email): ta KUN med uppgifter för denna specifika plats
+- Öppettider: ta med om de gäller denna plats eller hela kedjan (ange om det är kedjegenerella)
+- Meny, priser, erbjudanden, faciliteter: ta med ALL sådan information från hemsidan — den gäller troligtvis denna plats också
+- Skriv ALDRIG "inga uppgifter finns för denna plats" för meny/priser/faciliteter om informationen finns på hemsidan`
       : bizName
-      ? `\nDETTA GÄLLER SPECIFIKT: "${bizName}". Om det finns flera filialer — extrahera bara information om denna verksamhet, inte om kedjan i allmänhet.`
+      ? `\nDETTA GÄLLER: "${bizName}". Extrahera all relevant information från hemsidan.`
       : "";
 
     const knowledgeRes = await groq.chat.completions.create({
