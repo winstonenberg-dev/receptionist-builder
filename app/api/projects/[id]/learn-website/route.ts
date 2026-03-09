@@ -249,7 +249,7 @@ REGLER FÖR KEDJOR/FLERA FILIALER:
       : "";
 
     const knowledgeRes = await groq.chat.completions.create({
-      model: "llama-3.3-70b-versatile",
+      model: "llama-3.1-8b-instant", // 500k TPD vs 100k for 70b — räcker för extraktion
       messages: [
         {
           role: "system",
@@ -313,6 +313,9 @@ ${allContent}`,
   } catch (err) {
     const detail = err instanceof Error ? err.message : String(err);
     console.error("learn-website error:", detail);
-    return NextResponse.json({ error: `Fel: ${detail.slice(0, 200)}` }, { status: 500 });
+    if (detail.includes("429") || detail.toLowerCase().includes("rate limit")) {
+      return NextResponse.json({ error: "AI-kvot slut för idag — försök igen imorgon eller uppgradera Groq-planen." }, { status: 429 });
+    }
+    return NextResponse.json({ error: "Internt fel — försök igen" }, { status: 500 });
   }
 }
