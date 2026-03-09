@@ -92,7 +92,7 @@ export default function ConfigurePage() {
   const saveTimers = useRef<Record<string, ReturnType<typeof setTimeout>>>({});
 
   // Utseende
-  const [appBotName, setAppBotName] = useState("AI-receptionist");
+  const [appBotName, setAppBotName] = useState("Kundtjänst");
   const [appTheme, setAppTheme] = useState<"dark" | "light" | "white">("dark");
   const [appAccent, setAppAccent] = useState("#a855f7");
   const [appSize, setAppSize] = useState<"small" | "medium" | "large">("medium");
@@ -560,7 +560,7 @@ export default function ConfigurePage() {
               <div className="mb-2">
                 <label className="text-[9px] font-medium text-[#5a5270] mb-0.5 block">Botens namn</label>
                 <input type="text" value={appBotName} onChange={e => setAppBotName(e.target.value)}
-                  placeholder="AI-receptionist"
+                  placeholder="Kundtjänst"
                   className="w-full bg-[#0d0b12] border border-[#2a2440] focus:border-[#4d4468] text-white placeholder:text-[#2a2440] rounded-lg px-2 py-1.5 text-[10px] focus:outline-none focus:ring-1 focus:ring-fuchsia-500/20" />
               </div>
 

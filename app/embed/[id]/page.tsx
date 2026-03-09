@@ -28,7 +28,7 @@ const THEMES: Record<string, Theme> = {
 
 export default function EmbedPage() {
   const { id } = useParams<{ id: string }>();
-  const [botName, setBotName] = useState("AI-receptionist");
+  const [botName, setBotName] = useState("Kundtjänst");
   const [theme, setTheme] = useState<Theme>(THEMES.dark);
   const [accent, setAccent] = useState("#a855f7");
   const [msgs, setMsgs] = useState<Message[]>([
@@ -43,7 +43,7 @@ export default function EmbedPage() {
     fetch(`/api/embed/${id}`)
       .then(r => r.json())
       .then(d => {
-        setBotName(d.botName || d.name || "AI-receptionist");
+        setBotName(d.botName || d.name || "Kundtjänst");
         setAccent(d.accent || "#a855f7");
         setTheme(THEMES[d.theme] ?? THEMES.dark);
       });
