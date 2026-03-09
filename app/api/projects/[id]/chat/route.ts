@@ -34,11 +34,8 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
     );
   }
 
-  // Rensa gamla IP-rader (äldre än 2 dagar) — körs passivt utan att blockera svaret
-  const cutoff = new Date();
-  cutoff.setDate(cutoff.getDate() - 2);
-  const cutoffDay = cutoff.toISOString().slice(0, 10);
-  prisma.rateLimit.deleteMany({ where: { day: { lt: cutoffDay } } }).catch(() => {});
+  // Rensa gamla IP-rader (tidigare dagar) — körs passivt utan att blockera svaret
+  prisma.rateLimit.deleteMany({ where: { day: { lt: day } } }).catch(() => {});
 
   const project = await prisma.project.findUnique({
     where: { id },
