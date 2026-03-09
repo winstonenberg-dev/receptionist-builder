@@ -31,6 +31,34 @@ const INDUSTRY_LABEL: Record<string, string> = {
   annan:      "Annan bransch",
 };
 
+// 24 golden blobs — varied sizes and positions
+const BLOBS = [
+  { top: "2%",   left: "8%",  w: 420, h: 280, opacity: 0.055 },
+  { top: "8%",   left: "55%", w: 520, h: 340, opacity: 0.04  },
+  { top: "1%",   left: "82%", w: 260, h: 180, opacity: 0.05  },
+  { top: "18%",  left: "28%", w: 180, h: 140, opacity: 0.035 },
+  { top: "22%",  left: "72%", w: 320, h: 220, opacity: 0.045 },
+  { top: "30%",  left: "5%",  w: 240, h: 160, opacity: 0.04  },
+  { top: "35%",  left: "88%", w: 200, h: 150, opacity: 0.03  },
+  { top: "38%",  left: "42%", w: 480, h: 300, opacity: 0.03  },
+  { top: "45%",  left: "18%", w: 140, h: 100, opacity: 0.05  },
+  { top: "48%",  left: "65%", w: 300, h: 200, opacity: 0.04  },
+  { top: "52%",  left: "90%", w: 180, h: 130, opacity: 0.035 },
+  { top: "55%",  left: "3%",  w: 360, h: 240, opacity: 0.03  },
+  { top: "58%",  left: "35%", w: 160, h: 120, opacity: 0.045 },
+  { top: "60%",  left: "78%", w: 400, h: 260, opacity: 0.04  },
+  { top: "65%",  left: "50%", w: 200, h: 140, opacity: 0.03  },
+  { top: "68%",  left: "12%", w: 280, h: 190, opacity: 0.05  },
+  { top: "72%",  left: "68%", w: 150, h: 110, opacity: 0.04  },
+  { top: "75%",  left: "88%", w: 340, h: 220, opacity: 0.035 },
+  { top: "78%",  left: "25%", w: 440, h: 280, opacity: 0.03  },
+  { top: "82%",  left: "58%", w: 120, h: 90,  opacity: 0.05  },
+  { top: "85%",  left: "5%",  w: 200, h: 150, opacity: 0.04  },
+  { top: "88%",  left: "42%", w: 300, h: 200, opacity: 0.035 },
+  { top: "92%",  left: "75%", w: 260, h: 170, opacity: 0.045 },
+  { top: "95%",  left: "15%", w: 380, h: 240, opacity: 0.04  },
+];
+
 function completeness(p: Project): number {
   let score = 0;
   if (p.hasWebsite)    score += 33;
@@ -40,9 +68,13 @@ function completeness(p: Project): number {
 }
 
 function ProgressBar({ value }: { value: number }) {
-  const color = value === 100 ? "bg-white" : value >= 66 ? "bg-white/70" : value >= 33 ? "bg-white/40" : "bg-white/20";
+  const color = value === 100
+    ? "bg-emerald-400"
+    : value >= 66 ? "bg-amber-400"
+    : value >= 33 ? "bg-amber-600"
+    : "bg-white/15";
   return (
-    <div className="w-full h-[2px] bg-white/10 rounded-full overflow-hidden">
+    <div className="w-full h-[2px] bg-white/8 rounded-full overflow-hidden">
       <div className={`h-full ${color} rounded-full transition-all duration-500`} style={{ width: `${value}%` }} />
     </div>
   );
@@ -135,13 +167,32 @@ export default function DashboardPage() {
   const firstName = session?.user?.name?.split(" ")[0] ?? session?.user?.email?.split("@")[0] ?? "";
 
   return (
-    <div className="min-h-screen bg-black text-white">
+    <div className="min-h-screen bg-black text-white relative overflow-x-hidden">
+
+      {/* Golden blobs */}
+      <div className="fixed inset-0 pointer-events-none overflow-hidden" aria-hidden>
+        {BLOBS.map((b, i) => (
+          <div
+            key={i}
+            className="absolute rounded-full blur-3xl"
+            style={{
+              top: b.top,
+              left: b.left,
+              width: b.w,
+              height: b.h,
+              background: `radial-gradient(ellipse, rgba(193,154,65,${b.opacity}) 0%, transparent 70%)`,
+              transform: "translate(-50%, -50%)",
+            }}
+          />
+        ))}
+      </div>
+
       {deleteTarget && (
         <DeleteModal name={deleteTarget.name} onConfirm={handleDelete} onCancel={() => setDeleteTarget(null)} loading={deleting} />
       )}
 
       {/* Nav */}
-      <nav className="bg-black/90 backdrop-blur border-b border-white/8 px-6 py-4 flex items-center justify-between sticky top-0 z-10">
+      <nav className="bg-black/80 backdrop-blur border-b border-white/8 px-6 py-4 flex items-center justify-between sticky top-0 z-10">
         <div className="flex items-center gap-3">
           <div className="w-7 h-7 rounded-lg bg-white flex items-center justify-center text-black font-bold text-xs">R</div>
           <span className="font-semibold text-white text-sm">Receptionist Builder</span>
@@ -152,7 +203,7 @@ export default function DashboardPage() {
         </div>
       </nav>
 
-      <div className="max-w-5xl mx-auto px-6 py-10">
+      <div className="max-w-5xl mx-auto px-6 py-10 relative z-0">
 
         {/* Heading */}
         <div className="mb-10">
@@ -165,17 +216,17 @@ export default function DashboardPage() {
         {/* Stats */}
         {!loadingProjects && totalBots > 0 && (
           <div className="grid grid-cols-3 gap-3 mb-10">
-            <div className="border border-white/10 rounded-2xl px-5 py-4">
+            <div className="border border-white/10 rounded-2xl px-5 py-4 bg-black/40 backdrop-blur-sm">
               <p className="text-white/40 text-xs font-medium uppercase tracking-widest mb-2">Projekt</p>
-              <p className="text-2xl font-bold">{totalBots}</p>
+              <p className="text-2xl font-bold text-white">{totalBots}</p>
             </div>
-            <div className="border border-white/10 rounded-2xl px-5 py-4">
+            <div className="border border-white/10 rounded-2xl px-5 py-4 bg-black/40 backdrop-blur-sm">
               <p className="text-white/40 text-xs font-medium uppercase tracking-widest mb-2">Aktiva botar</p>
-              <p className="text-2xl font-bold">{activeBots}</p>
+              <p className="text-2xl font-bold text-amber-400">{activeBots}</p>
             </div>
-            <div className="border border-white/10 rounded-2xl px-5 py-4">
+            <div className="border border-white/10 rounded-2xl px-5 py-4 bg-black/40 backdrop-blur-sm">
               <p className="text-white/40 text-xs font-medium uppercase tracking-widest mb-2">Färdiga</p>
-              <p className="text-2xl font-bold">{readyBots}</p>
+              <p className="text-2xl font-bold text-emerald-400">{readyBots}</p>
             </div>
           </div>
         )}
@@ -199,7 +250,7 @@ export default function DashboardPage() {
             ))}
           </div>
         ) : projects.length === 0 ? (
-          <div className="text-center py-24 border border-white/10 rounded-2xl">
+          <div className="text-center py-24 border border-white/10 rounded-2xl bg-black/40 backdrop-blur-sm">
             <div className="text-4xl mb-4">🤖</div>
             <h2 className="text-lg font-semibold mb-2">Inga projekt än</h2>
             <p className="text-white/40 text-sm mb-6">Skapa ditt första projekt för att komma igång</p>
@@ -218,7 +269,7 @@ export default function DashboardPage() {
                 : null;
 
               return (
-                <div key={p.id} className="group border border-white/10 hover:border-white/25 rounded-2xl transition-all duration-200 overflow-hidden flex flex-col bg-white/2">
+                <div key={p.id} className="group border border-white/10 hover:border-white/25 rounded-2xl transition-all duration-200 overflow-hidden flex flex-col bg-black/50 backdrop-blur-sm">
                   <Link href={`/projects/${p.id}/questions`} className="p-5 flex-1 block">
 
                     {/* Top row */}
@@ -231,7 +282,7 @@ export default function DashboardPage() {
                         {label && <p className="text-white/35 text-xs mt-0.5">{label}</p>}
                       </div>
                       {pct === 100 && (
-                        <span className="flex-shrink-0 text-white/60 text-xs font-medium mt-0.5">✓</span>
+                        <span className="flex-shrink-0 text-emerald-400 text-xs font-medium mt-0.5">✓</span>
                       )}
                     </div>
 
@@ -239,20 +290,32 @@ export default function DashboardPage() {
                     <div className="mb-4">
                       <div className="flex items-center justify-between mb-2">
                         <span className="text-[10px] text-white/25 uppercase tracking-widest">Setup</span>
-                        <span className="text-[10px] text-white/40 font-medium">{pct}%</span>
+                        <span className={`text-[10px] font-semibold ${pct === 100 ? "text-emerald-400" : pct >= 33 ? "text-amber-400" : "text-white/30"}`}>{pct}%</span>
                       </div>
                       <ProgressBar value={pct} />
                     </div>
 
                     {/* Chips */}
                     <div className="flex flex-wrap gap-1.5">
-                      <span className={`text-[10px] font-medium px-2 py-0.5 rounded-full border ${p.hasWebsite ? "border-white/20 text-white/60" : "border-white/8 text-white/20"}`}>
+                      <span className={`text-[10px] font-medium px-2 py-0.5 rounded-full border ${
+                        p.hasWebsite
+                          ? "bg-emerald-500/10 border-emerald-500/25 text-emerald-400"
+                          : "border-white/8 text-white/20"
+                      }`}>
                         {p.hasWebsite ? "✓ Hemsida" : "Ingen hemsida"}
                       </span>
-                      <span className={`text-[10px] font-medium px-2 py-0.5 rounded-full border ${p.hasSynthesis ? "border-white/20 text-white/60" : "border-white/8 text-white/20"}`}>
+                      <span className={`text-[10px] font-medium px-2 py-0.5 rounded-full border ${
+                        p.hasSynthesis
+                          ? "bg-blue-500/10 border-blue-500/25 text-blue-400"
+                          : "border-white/8 text-white/20"
+                      }`}>
                         {p.hasSynthesis ? "✓ Agenter" : "Ingen analys"}
                       </span>
-                      <span className={`text-[10px] font-medium px-2 py-0.5 rounded-full border ${p.latestVersion ? "border-white/20 text-white/60" : "border-white/8 text-white/20"}`}>
+                      <span className={`text-[10px] font-medium px-2 py-0.5 rounded-full border ${
+                        p.latestVersion
+                          ? "bg-amber-500/10 border-amber-500/25 text-amber-400"
+                          : "border-white/8 text-white/20"
+                      }`}>
                         {p.latestVersion ? `✓ Prompt v${p.latestVersion}` : "Ingen prompt"}
                       </span>
                     </div>
