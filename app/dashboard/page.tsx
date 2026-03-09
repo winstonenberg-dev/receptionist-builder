@@ -33,30 +33,30 @@ const INDUSTRY_LABEL: Record<string, string> = {
 
 // 24 golden blobs — varied sizes and positions
 const BLOBS = [
-  { top: "2%",   left: "8%",  w: 420, h: 280, opacity: 0.055 },
-  { top: "8%",   left: "55%", w: 520, h: 340, opacity: 0.04  },
-  { top: "1%",   left: "82%", w: 260, h: 180, opacity: 0.05  },
-  { top: "18%",  left: "28%", w: 180, h: 140, opacity: 0.035 },
-  { top: "22%",  left: "72%", w: 320, h: 220, opacity: 0.045 },
-  { top: "30%",  left: "5%",  w: 240, h: 160, opacity: 0.04  },
-  { top: "35%",  left: "88%", w: 200, h: 150, opacity: 0.03  },
-  { top: "38%",  left: "42%", w: 480, h: 300, opacity: 0.03  },
-  { top: "45%",  left: "18%", w: 140, h: 100, opacity: 0.05  },
-  { top: "48%",  left: "65%", w: 300, h: 200, opacity: 0.04  },
-  { top: "52%",  left: "90%", w: 180, h: 130, opacity: 0.035 },
-  { top: "55%",  left: "3%",  w: 360, h: 240, opacity: 0.03  },
-  { top: "58%",  left: "35%", w: 160, h: 120, opacity: 0.045 },
-  { top: "60%",  left: "78%", w: 400, h: 260, opacity: 0.04  },
-  { top: "65%",  left: "50%", w: 200, h: 140, opacity: 0.03  },
-  { top: "68%",  left: "12%", w: 280, h: 190, opacity: 0.05  },
-  { top: "72%",  left: "68%", w: 150, h: 110, opacity: 0.04  },
-  { top: "75%",  left: "88%", w: 340, h: 220, opacity: 0.035 },
-  { top: "78%",  left: "25%", w: 440, h: 280, opacity: 0.03  },
-  { top: "82%",  left: "58%", w: 120, h: 90,  opacity: 0.05  },
-  { top: "85%",  left: "5%",  w: 200, h: 150, opacity: 0.04  },
-  { top: "88%",  left: "42%", w: 300, h: 200, opacity: 0.035 },
-  { top: "92%",  left: "75%", w: 260, h: 170, opacity: 0.045 },
-  { top: "95%",  left: "15%", w: 380, h: 240, opacity: 0.04  },
+  { top:  "3%",  left:  "8%", w: 500, h: 320, opacity: 0.13 },
+  { top:  "6%",  left: "58%", w: 600, h: 380, opacity: 0.10 },
+  { top:  "2%",  left: "85%", w: 300, h: 220, opacity: 0.11 },
+  { top: "18%",  left: "28%", w: 220, h: 160, opacity: 0.09 },
+  { top: "22%",  left: "74%", w: 380, h: 260, opacity: 0.10 },
+  { top: "30%",  left:  "4%", w: 280, h: 200, opacity: 0.09 },
+  { top: "35%",  left: "90%", w: 240, h: 170, opacity: 0.08 },
+  { top: "38%",  left: "44%", w: 560, h: 340, opacity: 0.08 },
+  { top: "45%",  left: "18%", w: 180, h: 130, opacity: 0.11 },
+  { top: "48%",  left: "66%", w: 360, h: 240, opacity: 0.09 },
+  { top: "52%",  left: "91%", w: 220, h: 150, opacity: 0.09 },
+  { top: "55%",  left:  "2%", w: 420, h: 280, opacity: 0.08 },
+  { top: "58%",  left: "36%", w: 200, h: 140, opacity: 0.10 },
+  { top: "60%",  left: "79%", w: 460, h: 300, opacity: 0.09 },
+  { top: "65%",  left: "51%", w: 240, h: 160, opacity: 0.08 },
+  { top: "68%",  left: "12%", w: 340, h: 230, opacity: 0.11 },
+  { top: "72%",  left: "68%", w: 200, h: 150, opacity: 0.09 },
+  { top: "75%",  left: "89%", w: 400, h: 260, opacity: 0.09 },
+  { top: "78%",  left: "25%", w: 520, h: 320, opacity: 0.08 },
+  { top: "82%",  left: "59%", w: 160, h: 120, opacity: 0.11 },
+  { top: "85%",  left:  "4%", w: 260, h: 180, opacity: 0.09 },
+  { top: "88%",  left: "43%", w: 360, h: 240, opacity: 0.09 },
+  { top: "92%",  left: "76%", w: 300, h: 200, opacity: 0.10 },
+  { top: "95%",  left: "14%", w: 460, h: 280, opacity: 0.09 },
 ];
 
 function completeness(p: Project): number {
@@ -154,8 +154,8 @@ export default function DashboardPage() {
     }
   };
 
-  const activeBots = projects.filter(p => p.latestVersion).length;
-  const readyBots  = projects.filter(p => completeness(p) === 100).length;
+  const incompleteBots = projects.filter(p => completeness(p) < 100).length;
+  const readyBots      = projects.filter(p => completeness(p) === 100).length;
   const totalBots  = projects.length;
 
   if (status === "loading") return (
@@ -170,16 +170,18 @@ export default function DashboardPage() {
     <div className="min-h-screen bg-black text-white relative overflow-x-hidden">
 
       {/* Golden blobs */}
-      <div className="fixed inset-0 pointer-events-none overflow-hidden" aria-hidden>
+      <div className="fixed inset-0 pointer-events-none" aria-hidden style={{ zIndex: 0 }}>
         {BLOBS.map((b, i) => (
           <div
             key={i}
-            className="absolute rounded-full blur-3xl"
             style={{
+              position: "absolute",
               top: b.top,
               left: b.left,
               width: b.w,
               height: b.h,
+              borderRadius: "50%",
+              filter: "blur(72px)",
               background: `radial-gradient(ellipse, rgba(193,154,65,${b.opacity}) 0%, transparent 70%)`,
               transform: "translate(-50%, -50%)",
             }}
@@ -221,8 +223,8 @@ export default function DashboardPage() {
               <p className="text-2xl font-bold text-white">{totalBots}</p>
             </div>
             <div className="border border-white/10 rounded-2xl px-5 py-4 bg-black/40 backdrop-blur-sm">
-              <p className="text-white/40 text-xs font-medium uppercase tracking-widest mb-2">Aktiva botar</p>
-              <p className="text-2xl font-bold text-amber-400">{activeBots}</p>
+              <p className="text-white/40 text-xs font-medium uppercase tracking-widest mb-2">Ej klara</p>
+              <p className="text-2xl font-bold text-amber-400">{incompleteBots}</p>
             </div>
             <div className="border border-white/10 rounded-2xl px-5 py-4 bg-black/40 backdrop-blur-sm">
               <p className="text-white/40 text-xs font-medium uppercase tracking-widest mb-2">Färdiga</p>
