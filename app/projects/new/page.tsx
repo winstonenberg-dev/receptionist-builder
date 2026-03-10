@@ -39,8 +39,8 @@ export default function NewProjectPage() {
   return (
     <div className="min-h-screen bg-[#0d0b12]">
       <nav className="bg-[#0a0910] border-b border-[#1e1a2e] px-6 py-4 flex items-center gap-3">
-        <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-fuchsia-500 to-violet-600 flex items-center justify-center text-white font-bold text-sm shadow shadow-fuchsia-900/40">R</div>
-        <span className="font-semibold text-white">Receptionist Builder</span>
+        <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-fuchsia-500 to-violet-600 flex items-center justify-center text-white font-bold text-sm shadow shadow-fuchsia-900/40">AI</div>
+        <span className="font-semibold text-white">AI Operator</span>
       </nav>
 
       <div className="max-w-lg mx-auto px-6 py-12">

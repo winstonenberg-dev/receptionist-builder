@@ -150,8 +150,8 @@ Förbättra prompten så att receptionisten kan svara bättre på de frågor som
       {/* Nav */}
       <nav className="bg-[#0a0910] border-b border-[#1e1a2e] px-6 py-3 flex items-center justify-between flex-shrink-0">
         <div className="flex items-center gap-3">
-          <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-fuchsia-500 to-violet-600 flex items-center justify-center text-white font-bold text-xs">R</div>
-          <span className="font-semibold text-white text-sm">Receptionist Builder</span>
+          <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-fuchsia-500 to-violet-600 flex items-center justify-center text-white font-bold text-xs">AI</div>
+          <span className="font-semibold text-white text-sm">AI Operator</span>
           {data?.projectName && (
             <>
               <span className="text-[#3d3456] text-sm">/</span>

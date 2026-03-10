@@ -34,9 +34,9 @@ export default function RegisterPage() {
     <div className="min-h-screen flex items-center justify-center bg-[#0d0b12]">
       <div className="w-full max-w-sm px-6">
         <div className="text-center mb-8">
-          <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-fuchsia-500 to-violet-600 flex items-center justify-center text-white text-lg font-bold mx-auto mb-4 shadow-lg shadow-fuchsia-900/40">R</div>
+          <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-fuchsia-500 to-violet-600 flex items-center justify-center text-white text-lg font-bold mx-auto mb-4 shadow-lg shadow-fuchsia-900/40">AI</div>
           <h1 className="text-xl font-bold text-white">Skapa konto</h1>
-          <p className="text-[#7a7090] text-sm mt-1">Kom igång med Receptionist Builder</p>
+          <p className="text-[#7a7090] text-sm mt-1">Kom igång med AI Operator</p>
         </div>
         <div className="bg-[#14111e] border border-[#2a2440] rounded-2xl p-6">
           <form onSubmit={handleSubmit} className="space-y-4">

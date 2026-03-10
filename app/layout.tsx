@@ -3,8 +3,8 @@ import "./globals.css";
 import { Providers } from "./providers";
 
 export const metadata: Metadata = {
-  title: "Receptionist Builder",
-  description: "Bygg AI-receptionister för dina kunder",
+  title: "AI Operator",
+  description: "Bygg AI-agenter för dina kunder",
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

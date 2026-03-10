@@ -197,8 +197,8 @@ export default function DashboardPage() {
       {/* Nav */}
       <nav className="bg-black/80 backdrop-blur border-b border-white/8 px-6 py-4 flex items-center justify-between sticky top-0 z-10">
         <div className="flex items-center gap-3">
-          <div className="w-7 h-7 rounded-lg bg-white flex items-center justify-center text-black font-bold text-xs">R</div>
-          <span className="font-semibold text-white text-sm">Receptionist Builder</span>
+          <div className="w-7 h-7 rounded-lg bg-white flex items-center justify-center text-black font-bold text-xs">AI</div>
+          <span className="font-semibold text-white text-sm">AI Operator</span>
         </div>
         <div className="flex items-center gap-5 text-sm">
           <span className="text-white/30 hidden sm:block">{session?.user?.email}</span>
