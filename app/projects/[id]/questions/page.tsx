@@ -489,11 +489,13 @@ export default function ConfigurePage() {
                 className="bg-[#1a1628] border border-fuchsia-500/40 rounded px-2 py-0.5 text-white text-sm w-48 focus:outline-none focus:border-fuchsia-400"
               />
             ) : (
-              <button onClick={() => { setNameInput(projectName); setEditingName(true); }}
-                className="text-[#9b93b3] hover:text-white text-sm transition group flex items-center gap-1">
-                {projectName}
-                <span className="text-[10px] text-fuchsia-400 opacity-60 group-hover:opacity-100 transition-opacity">✏️</span>
-              </button>
+              <span className="flex items-center gap-2">
+                <span className="text-white text-sm font-medium">{projectName}</span>
+                <button onClick={() => { setNameInput(projectName); setEditingName(true); }}
+                  className="flex items-center gap-1 px-2 py-0.5 rounded bg-[#1a1628] border border-[#2a2440] hover:border-fuchsia-500/50 text-[#9b93b3] hover:text-fuchsia-300 text-xs transition">
+                  ✏ Byt namn
+                </button>
+              </span>
             )}
           </>)}
         </div>
