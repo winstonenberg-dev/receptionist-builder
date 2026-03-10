@@ -1006,26 +1006,42 @@ export default function ConfigurePage() {
               </div>
             )}
 
-            {promptText ? (
-              <div>
-                <div className="px-4 py-1.5 bg-[#0f0d18] border-b border-[#1e1a2e]">
-                  <span className="text-[10px] font-semibold text-fuchsia-400/70 uppercase tracking-wider">
-                    System-prompt{promptVersion ? ` v${promptVersion}` : ""}
-                  </span>
-                </div>
-                <div className="p-4">
-                  {promptDiff ? (
-                    <pre className="text-[10px] whitespace-pre-wrap font-mono leading-relaxed">
-                      {promptDiff.map((line, i) => (
-                        <span key={i} className={line.added ? "text-emerald-400" : "text-[#7a7090]"}>
-                          {line.text}{"\n"}
-                        </span>
+            {(promptText || persona || websiteKnowledge || Object.values(qaAnswers).some(v => v)) ? (
+              <div className="divide-y divide-[#1e1a2e]">
+                {persona && (
+                  <div className="px-4 py-3">
+                    <p className="text-[9px] font-semibold text-fuchsia-400/70 uppercase tracking-widest mb-1.5">Bemötning</p>
+                    <pre className="text-[10px] text-fuchsia-200/70 whitespace-pre-wrap font-mono leading-relaxed">{persona}</pre>
+                  </div>
+                )}
+                {Object.values(qaAnswers).some(v => v) && (
+                  <div className="px-4 py-3">
+                    <p className="text-[9px] font-semibold text-emerald-400/70 uppercase tracking-widest mb-1.5">Snabbfakta</p>
+                    <div className="space-y-0.5">
+                      {qaQuestions.filter(q => qaAnswers[q.key]).map(q => (
+                        <p key={q.key} className="text-[10px] text-emerald-200/60 font-mono">• {q.label}: {qaAnswers[q.key]}</p>
                       ))}
-                    </pre>
-                  ) : (
-                    <pre className="text-[10px] text-[#7a7090] whitespace-pre-wrap font-mono leading-relaxed">{promptText}</pre>
-                  )}
-                </div>
+                    </div>
+                  </div>
+                )}
+                {promptText && (
+                  <div className="px-4 py-3">
+                    <p className="text-[9px] font-semibold text-[#5a5270] uppercase tracking-widest mb-1.5">
+                      System-prompt{promptVersion ? ` v${promptVersion}` : ""}
+                    </p>
+                    {promptDiff ? (
+                      <pre className="text-[10px] whitespace-pre-wrap font-mono leading-relaxed">
+                        {promptDiff.map((line, i) => (
+                          <span key={i} className={line.added ? "text-emerald-400" : "text-[#7a7090]"}>
+                            {line.text}{"\n"}
+                          </span>
+                        ))}
+                      </pre>
+                    ) : (
+                      <pre className="text-[10px] text-[#7a7090] whitespace-pre-wrap font-mono leading-relaxed">{promptText}</pre>
+                    )}
+                  </div>
+                )}
               </div>
             ) : !websiteKnowledge ? (
               <div className="flex flex-col items-center justify-center h-full text-center px-4">
@@ -1035,13 +1051,11 @@ export default function ConfigurePage() {
             ) : null}
           </div>
 
-          {(promptText || websiteKnowledge) && (
-            <div className="px-4 py-2 border-t border-[#1e1a2e] flex-shrink-0">
-              <p className="text-[10px] text-[#3d3456]">
-                <span className="text-emerald-500/50">Hemsidekunskap</span> + <span className="text-fuchsia-400/50">system-prompt</span> kombineras i chatboten
-              </p>
-            </div>
-          )}
+          <div className="px-4 py-2 border-t border-[#1e1a2e] flex-shrink-0">
+            <p className="text-[10px] text-[#3d3456]">
+              <span className="text-fuchsia-400/50">Bemötning</span> + <span className="text-emerald-500/50">Snabbfakta</span> + <span className="text-[#5a5270]">system-prompt</span> — allt används live i boten
+            </p>
+          </div>
         </div>
 
       </div>
