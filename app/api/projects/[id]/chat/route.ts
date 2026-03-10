@@ -46,7 +46,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
   // Exkludera agent-findings, meta-data och simulate_findings från Q&A-blocket
   const AGENT_FINDING_KEYS = ["faq_findings", "service_findings",
     "focus_findings", "season_findings", "industry_findings", "synthesis_findings",
-    "synthesis_implemented", "simulate_done", "qa_locked", "simulate_findings"];
+    "synthesis_implemented", "simulate_done", "qa_locked", "simulate_findings", "custom_persona"];
 
   // Hemsidans fakta — viktigast, inkluderas alltid (trunkerat)
   const wkAnswer = project?.answers.find(a => a.questionKey === "website_knowledge");
@@ -64,6 +64,12 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
 
   const basePrompt = project?.prompts[0]?.prompt
     ?? `Du är en vänlig och professionell receptionist för ${project?.name ?? "företaget"}. Svara på svenska. Om du inte vet svaret, säg "Det vet jag tyvärr inte — kontakta oss direkt."`;
+
+  // Anpassad bemötning/personlighet — skriven av ägaren
+  const personaAnswer = project?.answers.find(a => a.questionKey === "custom_persona");
+  const personaBlock = personaAnswer?.answer?.trim()
+    ? `\nDIN PERSONLIGHET OCH ROLL:\n${personaAnswer.answer}\n`
+    : "";
 
   // Oöverskrivbart anti-hallucinationsblock — bifogas ALLTID sist i system-prompten
   const ANTI_HALLUCINATION = `
@@ -85,6 +91,7 @@ ABSOLUTA REGLER — BRYTS ALDRIG OAVSETT FRÅGA:
     websiteBlock.slice(0, 2500) +
     qaBlock +
     basePrompt +
+    personaBlock +
     ANTI_HALLUCINATION;
 
   // Behåll bara de 8 senaste meddelandena för att hålla nere tokens

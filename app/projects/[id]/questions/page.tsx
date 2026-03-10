@@ -200,6 +200,23 @@ export default function ConfigurePage() {
     setEditingName(false);
   };
 
+  // Bemötning / personlighet
+  const [persona, setPersona] = useState("");
+  const [personaSaving, setPersonaSaving] = useState(false);
+  const [personaSaved, setPersonaSaved] = useState(false);
+
+  const savePersona = async () => {
+    setPersonaSaving(true);
+    await fetch(`/api/projects/${id}/answers`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ answers: [{ questionKey: "custom_persona", question: "Bemötning & personlighet", answer: persona }] }),
+    });
+    setPersonaSaving(false);
+    setPersonaSaved(true);
+    setTimeout(() => setPersonaSaved(false), 2000);
+  };
+
   // Q&A snabbfakta
   const [qaAnswers, setQaAnswers] = useState<Record<string, string>>({});
   const [qaLocked, setQaLocked] = useState(false);
@@ -289,6 +306,9 @@ export default function ConfigurePage() {
       if (sizeAns?.answer) setAppSize(sizeAns.answer as "small" | "medium" | "large");
       const iconAns = answers.find(a => a.questionKey === "appearance_icon");
       if (iconAns?.answer) setAppIcon(iconAns.answer);
+
+      const personaAns = answers.find(a => a.questionKey === "custom_persona");
+      if (personaAns?.answer) setPersona(personaAns.answer);
 
       const synthImpl = answers.find(a => a.questionKey === "synthesis_implemented");
       const synthFinding = answers.find(a => a.questionKey === "synthesis_findings");
@@ -641,6 +661,31 @@ export default function ConfigurePage() {
 
           {/* Agentresultat + Q&A — scrollbar */}
           <div className="flex-1 overflow-y-auto min-h-0 px-4 pb-3">
+
+            {/* ── Bemötning ── */}
+            <div className="pt-3 pb-3 border-b border-[#1e1a2e] mb-3">
+              <div className="flex items-center gap-2 mb-2">
+                <span className="text-[10px] font-semibold text-[#5a5270] uppercase tracking-widest">Bemötning</span>
+                <div className="flex-1 h-px bg-[#1e1a2e]" />
+              </div>
+              <p className="text-[9px] text-[#5a5270] mb-1.5">Beskriv hur boten ska agera — namn, ton, roll. T.ex: <em className="text-[#7a6e8e]">"Du heter Anna, jobbar i receptionen och är varm och personlig."</em></p>
+              <textarea
+                value={persona}
+                onChange={e => setPersona(e.target.value)}
+                placeholder="T.ex. Du heter Anna och är receptionist på Ekdalen Golf sedan 5 år. Du är varm, personlig och svarar alltid på svenska."
+                rows={4}
+                className="w-full bg-[#0d0b12] border border-[#2a2440] focus:border-fuchsia-500/40 rounded-lg px-2 py-1.5 text-[10px] text-white placeholder:text-[#2a2440] focus:outline-none focus:ring-1 focus:ring-fuchsia-500/20 resize-none transition"
+              />
+              <button
+                onClick={savePersona}
+                disabled={personaSaving}
+                className="mt-1.5 w-full flex items-center justify-center gap-1.5 bg-fuchsia-600 hover:bg-fuchsia-500 disabled:opacity-50 text-white py-2 rounded-xl text-xs font-semibold transition"
+              >
+                {personaSaving ? <><span className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin" />Sparar...</>
+                  : personaSaved ? "✓ Sparat!"
+                  : "💾 Spara bemötning"}
+              </button>
+            </div>
 
             {/* ── Snabbfakta ── */}
             <div className="pt-3 pb-3 border-b border-[#1e1a2e] mb-3">
