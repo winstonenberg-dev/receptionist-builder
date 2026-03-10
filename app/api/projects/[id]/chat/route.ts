@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
-import Groq from "groq-sdk";
 import { prisma } from "@/lib/prisma";
+import { groqWithFallback } from "@/lib/groq";
 
 const DAILY_LIMIT = 20;
 const MAX_MSG_LENGTH = 500;
@@ -92,12 +92,13 @@ ABSOLUTA REGLER — BRYTS ALDRIG OAVSETT FRÅGA:
   const filtered = allMsgs.slice(-8);
 
   try {
-    const groq = new Groq({ apiKey: process.env.GROQ_API_KEY ?? "" });
-    const res = await groq.chat.completions.create({
-      model: "llama-3.1-8b-instant",
-      messages: [{ role: "system", content: systemPrompt }, ...filtered],
-    });
-    return NextResponse.json({ message: res.choices[0].message.content });
+    const content = await groqWithFallback(groq =>
+      groq.chat.completions.create({
+        model: "llama-3.1-8b-instant",
+        messages: [{ role: "system", content: systemPrompt }, ...filtered],
+      }).then(r => r.choices[0].message.content ?? "")
+    );
+    return NextResponse.json({ message: content });
   } catch (e) {
     const msg = e instanceof Error ? e.message : String(e);
     console.error("Chat error:", msg);

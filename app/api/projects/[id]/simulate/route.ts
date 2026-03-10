@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
-import Groq from "groq-sdk";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { getGroqClient } from "@/lib/groq";
 
 // ── Regelbaserad scoring — 100% deterministisk, samma resultat varje körning ──
 // Mäter vad receptionisten faktiskt vet, inte hur AI mår den dagen.
@@ -279,7 +279,7 @@ export async function POST(
   if (!session?.user?.email) return NextResponse.json({ error: "Ej inloggad" }, { status: 401 });
 
   const { id } = await params;
-  const groq = new Groq({ apiKey: process.env.GROQ_API_KEY ?? "" });
+  const groq = getGroqClient();
 
   // Auth + ownership in one query
   const project = await prisma.project.findFirst({
@@ -331,7 +331,7 @@ Frågor:
 ${clubsList}`;
 
   const answerCompletion = await groq.chat.completions.create({
-    model: "llama-3.3-70b-versatile",
+    model: "llama-3.1-8b-instant",
     messages: [{ role: "user", content: answerPrompt }],
     temperature: 0.2, // Låg temp = konsekventa svar
     max_tokens: 14000,

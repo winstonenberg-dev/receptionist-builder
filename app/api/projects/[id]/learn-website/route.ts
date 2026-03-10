@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
-import Groq from "groq-sdk";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { getGroqClient } from "@/lib/groq";
 
 // Vercel Pro: allow up to 60s (hobby plan is capped at 10s regardless)
 export const maxDuration = 60;
@@ -226,7 +226,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
 
     const pagesRead = 1 + validSubs.length;
 
-    const groq = new Groq({ apiKey: process.env.GROQ_API_KEY ?? "" });
+    const groq = getGroqClient();
 
     // 4. Strukturerad faktaextraktion — branschanpassad, bevarar exakta värden
     const industry = project.industry ?? "verksamhet";
@@ -316,6 +316,7 @@ ${allContent}`,
     if (detail.includes("429") || detail.toLowerCase().includes("rate limit")) {
       return NextResponse.json({ error: "AI-kvot slut för idag — försök igen imorgon eller uppgradera Groq-planen." }, { status: 429 });
     }
-    return NextResponse.json({ error: "Internt fel — försök igen" }, { status: 500 });
+    // Tillfälligt: visa exakt fel för felsökning
+    return NextResponse.json({ error: `Fel: ${detail}` }, { status: 500 });
   }
 }

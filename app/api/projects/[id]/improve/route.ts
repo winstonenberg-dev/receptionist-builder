@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
-import Groq from "groq-sdk";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { getGroqClient } from "@/lib/groq";
 
 export async function POST(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const session = await getServerSession(authOptions);
@@ -30,9 +30,9 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
   const nextVersion = (latest?.version ?? 0) + 1;
 
   try {
-    const groq = new Groq({ apiKey: process.env.GROQ_API_KEY ?? "" });
+    const groq = getGroqClient();
     const res = await groq.chat.completions.create({
-      model: "llama-3.3-70b-versatile",
+      model: "llama-3.1-8b-instant",
       messages: [
         {
           role: "system",
@@ -61,7 +61,12 @@ ABSOLUTA REGLER SOM ALDRIG FÅR BRYTAS:
     });
 
     return NextResponse.json({ prompt: newPrompt, version: nextVersion });
-  } catch {
-    return NextResponse.json({ error: "Internt fel — försök igen" }, { status: 500 });
+  } catch (err) {
+    const detail = err instanceof Error ? err.message : String(err);
+    console.error("improve error:", detail);
+    if (detail.includes("429") || detail.toLowerCase().includes("rate limit")) {
+      return NextResponse.json({ error: "AI-kvot slut för idag — försök igen senare." }, { status: 429 });
+    }
+    return NextResponse.json({ error: `Fel: ${detail}` }, { status: 500 });
   }
 }

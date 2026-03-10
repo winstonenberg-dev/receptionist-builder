@@ -4,6 +4,7 @@ import { tavily } from "@tavily/core";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { getGroqClient } from "@/lib/groq";
 
 async function ask(groq: Groq, system: string, user: string, maxTokens = 700): Promise<string> {
   const res = await groq.chat.completions.create({
@@ -27,7 +28,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
   });
   if (!project) return NextResponse.json({ error: "Projekt hittades inte eller ej behörig" }, { status: 404 });
 
-  const groq = new Groq({ apiKey: process.env.GROQ_API_KEY ?? "" });
+  const groq = getGroqClient();
   const tv = tavily({ apiKey: process.env.TAVILY_API_KEY ?? "" });
 
   const industry = project.industry || "verksamhet";
