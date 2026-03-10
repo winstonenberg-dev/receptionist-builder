@@ -1,4 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
+import { getServerSession } from "next-auth";
+import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { groqWithFallback } from "@/lib/groq";
 
@@ -18,23 +20,30 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
     );
   }
 
-  // Rate-limiting: max 20 meddelanden per IP+projekt per dag
-  const ip = req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ?? "unknown";
-  const day = new Date().toISOString().slice(0, 10); // "YYYY-MM-DD"
-  const rl = await prisma.rateLimit.upsert({
-    where: { ip_projectId_day: { ip, projectId: id, day } },
-    update: { count: { increment: 1 } },
-    create: { ip, projectId: id, day, count: 1 },
-  });
-  if (rl.count > DAILY_LIMIT) {
-    return NextResponse.json(
-      { message: "Du har nått dagens gräns på 20 meddelanden. Kontakta oss direkt om du behöver mer hjälp!" },
-      { status: 429 }
-    );
-  }
+  // Inloggade ägare är undantagna från rate-limiting (för testning)
+  const session = await getServerSession(authOptions);
+  const isOwner = session?.user?.email
+    ? !!(await prisma.project.findFirst({ where: { id, user: { email: session.user.email } } }))
+    : false;
 
-  // Rensa gamla IP-rader (tidigare dagar) — körs passivt utan att blockera svaret
-  prisma.rateLimit.deleteMany({ where: { day: { lt: day } } }).catch(() => {});
+  if (!isOwner) {
+    // Rate-limiting: max 20 meddelanden per IP+projekt per dag
+    const ip = req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ?? "unknown";
+    const day = new Date().toISOString().slice(0, 10); // "YYYY-MM-DD"
+    const rl = await prisma.rateLimit.upsert({
+      where: { ip_projectId_day: { ip, projectId: id, day } },
+      update: { count: { increment: 1 } },
+      create: { ip, projectId: id, day, count: 1 },
+    });
+    if (rl.count > DAILY_LIMIT) {
+      return NextResponse.json(
+        { message: "Du har nått dagens gräns på 20 meddelanden. Kontakta oss direkt om du behöver mer hjälp!" },
+        { status: 429 }
+      );
+    }
+    // Rensa gamla IP-rader (tidigare dagar) — körs passivt utan att blockera svaret
+    prisma.rateLimit.deleteMany({ where: { day: { lt: day } } }).catch(() => {});
+  }
 
   const project = await prisma.project.findUnique({
     where: { id },
