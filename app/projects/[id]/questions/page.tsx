@@ -492,7 +492,7 @@ export default function ConfigurePage() {
               <button onClick={() => { setNameInput(projectName); setEditingName(true); }}
                 className="text-[#9b93b3] hover:text-white text-sm transition group flex items-center gap-1">
                 {projectName}
-                <span className="opacity-0 group-hover:opacity-100 text-[10px] text-fuchsia-400">✏️</span>
+                <span className="text-[10px] text-fuchsia-400 opacity-60 group-hover:opacity-100 transition-opacity">✏️</span>
               </button>
             )}
           </>)}

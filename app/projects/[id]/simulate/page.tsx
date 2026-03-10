@@ -96,41 +96,29 @@ export default function SimulatePage() {
     setImproveError("");
 
     const lowRated = data.results.filter(r => r.stars <= 2);
-    const midRated = data.results.filter(r => r.stars === 3);
 
-    const instruction = `Förbättra AI-receptionisten baserat på resultat från ett test med 100 golfklubbar.
+    // Bygg en strukturerad lista över informationsluckor
+    const gapList = lowRated.slice(0, 20)
+      .map(r => `• "${r.question}"`)
+      .join("\n");
 
-TESTRESULTAT:
-- Genomsnittsbetyg: ${data.avgStars}/5
-- Nöjda (4-5⭐): ${data.highCount} klubbar
-- Missnöjda (1-2⭐): ${data.lowCount} klubbar
-
-AI-ANALYS OCH REKOMMENDATIONER:
-${data.summary}
-
-FRÅGOR SOM FICK LÅGT BETYG — lägg till information om dessa om möjligt:
-${lowRated.slice(0, 15).map(r => `• "${r.question}" (${r.stars}⭐ — ${r.feedback})`).join("\n")}
-
-FRÅGOR SOM KAN FÖRBÄTTRAS:
-${midRated.slice(0, 10).map(r => `• "${r.question}" (${r.stars}⭐ — ${r.feedback})`).join("\n")}
-
-ABSOLUTA BEGRÄNSNINGAR SOM ALDRIG FÅR ÄNDRAS:
-1. Receptionisten är ENBART en informationskälla — den bokar ALDRIG något
-2. Ingen bokning av greenfee, boende, restaurang, lektioner eller annat
-3. Om kunden vill boka något: hänvisa alltid till att kontakta klubben direkt (telefon/email)
-4. Receptionisten svarar på frågor och ger information — inget annat
-
-Förbättra prompten så att receptionisten kan svara bättre på de frågor som fick lågt betyg, men behåll all befintlig information om företaget.`;
+    const findings = `Simuleringsresultat: ${data.total} frågor testades, snittbetyg ${data.avgStars}/5.\n\nAnalys: ${data.summary}\n\nFrågor som botten inte kunde svara på (${data.lowCount} st — fyll in dessa i Snabbfakta):\n${gapList}`;
 
     try {
-      const res = await fetch(`/api/projects/${id}/improve`, {
-        method: "POST",
+      // Spara som data i answers-tabellen — skriver INTE om prompten
+      const res = await fetch(`/api/projects/${id}/answers`, {
+        method: "PUT",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ instruction }),
+        body: JSON.stringify({
+          answers: [{
+            questionKey: "simulate_findings",
+            question: "Simuleringsresultat",
+            answer: findings,
+          }],
+        }),
       });
-      const json = await res.json();
-      if (json.error) throw new Error(json.error);
-      setImproveResult({ version: json.version });
+      if (!res.ok) throw new Error("Kunde inte spara simuleringsresultat");
+      setImproveResult({ version: 1 });
     } catch (e) {
       setImproveError(e instanceof Error ? e.message : String(e));
     } finally {
@@ -251,18 +239,18 @@ Förbättra prompten så att receptionisten kan svara bättre på de frågor som
                   <button onClick={implementLearnings} disabled={improveLoading}
                     className="flex-shrink-0 flex items-center gap-2 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 disabled:opacity-50 text-white px-4 py-2 rounded-xl text-xs font-semibold transition shadow-lg shadow-emerald-900/30">
                     {improveLoading
-                      ? <><span className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" />Förbättrar receptionist...</>
-                      : "✦ Implementera lärdomar i receptionist"}
+                      ? <><span className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" />Sparar resultat...</>
+                      : "✦ Spara analys & informationsluckor"}
                   </button>
                 )}
                 {improveResult && (
                   <div className="flex items-center gap-3 flex-shrink-0">
                     <span className="flex items-center gap-1.5 bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 text-xs font-medium px-3 py-1.5 rounded-lg">
-                      ✓ Uppdaterad till v{improveResult.version}
+                      ✓ Analys sparad
                     </span>
                     <Link href={`/projects/${id}/questions`}
-                      className="bg-[#1c1829] hover:bg-[#2a2440] border border-[#3d3456] text-[#c4bcd4] hover:text-white text-xs font-medium px-3 py-1.5 rounded-lg transition">
-                      Testa receptionisten →
+                      className="bg-gradient-to-r from-fuchsia-600 to-violet-600 hover:from-fuchsia-500 hover:to-violet-500 text-white text-xs font-medium px-3 py-1.5 rounded-lg transition">
+                      Fyll i saknad info →
                     </Link>
                   </div>
                 )}
@@ -274,12 +262,12 @@ Förbättra prompten så att receptionisten kan svara bättre på de frågor som
                 <p className="mt-3 text-red-400 text-xs">{improveError}</p>
               )}
 
-              {/* Constraint reminder */}
+              {/* How to improve */}
               <div className="mt-4 pt-4 border-t border-[#2a2440] flex items-start gap-2">
-                <span className="text-amber-400 text-xs flex-shrink-0 mt-0.5">⚠</span>
+                <span className="text-fuchsia-400 text-xs flex-shrink-0 mt-0.5">💡</span>
                 <p className="text-[#7a7090] text-xs leading-relaxed">
-                  Receptionisten förbättras som <strong className="text-[#9b93b3]">informationskälla</strong> — inga bokningar läggs till.
-                  Om kunder vill boka greenfee, boende eller restaurang hänvisas de till att kontakta klubben direkt.
+                  <strong className="text-[#9b93b3]">Hur du förbättrar receptionisten:</strong> Spara analysen ovan, gå sedan till <strong className="text-[#9b93b3]">Snabbfakta</strong> och fyll i de frågor som fick lågt betyg.
+                  Fakta lagras separat från prompten — ingenting skrivs om.
                 </p>
               </div>
             </div>

@@ -44,10 +44,10 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
     },
   });
 
-  // Exkludera agent-findings (stora analystexter) men inkludera website_knowledge (faktaunderlag)
+  // Exkludera agent-findings, meta-data och simulate_findings från Q&A-blocket
   const AGENT_FINDING_KEYS = ["faq_findings", "service_findings",
     "focus_findings", "season_findings", "industry_findings", "synthesis_findings",
-    "synthesis_implemented", "simulate_done", "qa_locked"];
+    "synthesis_implemented", "simulate_done", "qa_locked", "simulate_findings"];
 
   // Hemsidans fakta — viktigast, inkluderas alltid (trunkerat)
   const wkAnswer = project?.answers.find(a => a.questionKey === "website_knowledge");
