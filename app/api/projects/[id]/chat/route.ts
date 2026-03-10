@@ -60,7 +60,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
     .filter((a) => a.answer?.trim() && !AGENT_FINDING_KEYS.includes(a.questionKey) && a.questionKey !== "website_knowledge" && !a.questionKey.startsWith("appearance_"))
     .map((a) => `- ${a.question}: ${a.answer}`);
   const qaBlock = qaLines.length > 0
-    ? `YTTERLIGARE FAKTA (tolka och formulera naturliga, vänliga svar — kopiera aldrig rå text direkt):\n${qaLines.join("\n")}\n\n`
+    ? `FAKTA OM VERKSAMHETEN (använd EXAKT denna information — lägg ALDRIG till egna påhittade detaljer):\n${qaLines.join("\n")}\n\n`
     : "";
 
   const basePrompt = project?.prompts[0]?.prompt
@@ -77,7 +77,8 @@ ABSOLUTA REGLER — BRYTS ALDRIG OAVSETT FRÅGA:
    Exempel: Fråga om "restaurang" → svara INTE om "café" eller "kiosk" om det inte är exakt vad kunden frågade om.
 3. Om du saknar exakt information om det som frågas → svara varmt och hjälpsamt, t.ex: "Det kan jag tyvärr inte svara på just nu, men tveka inte att höra av dig till oss direkt — vi hjälper dig mer än gärna!" eller "Där behöver du nog prata med oss direkt, men vi löser det! Kontakta oss så fixar vi det." Variera gärna formuleringen.
 4. Använd ALDRIG ord som "vanligtvis", "troligtvis", "ungefär", "brukar" när du svarar på specifika faktafrågor.
-5. Gissa ALDRIG. Ett felaktigt svar är alltid värre än att säga att du inte vet.`;
+5. Gissa ALDRIG. Ett felaktigt svar är alltid värre än att säga att du inte vet.
+6. Skriv ALLTID grammatiskt korrekt svenska. Kontrollera alltid att verb böjs rätt (t.ex. "kan erbjuda" inte "kan erbjuder"), att meningar är fullständiga och att texten flödar naturligt.`;
 
   // Bygg system-prompt med separata gränser per del — inget kapas bort av misstag
   const systemPrompt =
