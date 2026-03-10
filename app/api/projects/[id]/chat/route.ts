@@ -96,7 +96,7 @@ ABSOLUTA REGLER — BRYTS ALDRIG OAVSETT FRÅGA:
   try {
     const content = await groqWithFallback(groq =>
       groq.chat.completions.create({
-        model: "llama-3.1-8b-instant",
+        model: "llama-3.3-70b-versatile",
         messages: [{ role: "system", content: systemPrompt }, ...filtered],
       }).then(r => r.choices[0].message.content ?? "")
     );
