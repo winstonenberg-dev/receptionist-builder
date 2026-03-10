@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/auth";
+import { getToken } from "next-auth/jwt";
 import { prisma } from "@/lib/prisma";
 import { groqWithFallback } from "@/lib/groq";
 
@@ -21,9 +20,9 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
   }
 
   // Inloggade ägare är undantagna från rate-limiting (för testning)
-  const session = await getServerSession(authOptions);
-  const isOwner = session?.user?.email
-    ? !!(await prisma.project.findFirst({ where: { id, user: { email: session.user.email } } }))
+  const token = await getToken({ req, secret: process.env.NEXTAUTH_SECRET });
+  const isOwner = token?.email
+    ? !!(await prisma.project.findFirst({ where: { id, user: { email: token.email as string } } }))
     : false;
 
   if (!isOwner) {
