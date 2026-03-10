@@ -254,7 +254,7 @@ export default function ConfigurePage() {
     Promise.all([
       fetch(`/api/projects/${id}/answers`).then(r => r.json()),
       fetch(`/api/projects/${id}`).then(r => r.json()),
-    ]).then(([answers, project]: [{ questionKey: string; answer: string }[], { websiteUrl?: string; promptLocked?: boolean; industry?: string }]) => {
+    ]).then(([answers, project]: [{ questionKey: string; answer: string }[], { websiteUrl?: string; promptLocked?: boolean; industry?: string; name?: string }]) => {
       const wk = answers.find(a => a.questionKey === "website_knowledge");
       if (wk?.answer) { setWebsiteKnowledge(wk.answer); setWebsiteResult({ pagesRead: 1 }); }
 
