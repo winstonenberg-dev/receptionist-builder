@@ -68,6 +68,67 @@ const QA_QUESTIONS_GENERIC = [
   { key: "qa_email",          label: "Email",                    placeholder: "T.ex. info@foretaget.se" },
 ];
 
+const TEST_DATA: Record<string, Record<string, string>> = {
+  golf: {
+    qa_greenfee:      "Veckdag 350 kr, Helg 450 kr, Junior 150 kr, Senior 280 kr",
+    qa_opening_hours: "Mån–Sön 07:00–20:00 (april–oktober)",
+    qa_season:        "Banan öppen april–oktober, stängd vintertid",
+    qa_holes:         "18-håls + 9-håls kort bana, par 72, slope 132",
+    qa_booking:       "Bokas via MinGolf-appen eller telefon 0171-123 45",
+    qa_handicap:      "Max hcp 54 krävs på 18-håls, inget krav på 9-håls",
+    qa_guests:        "Gäster välkomna, boka i förväg via receptionen",
+    qa_membership:    "Årsmedlem 4 500 kr, ansökan via hemsidan",
+    qa_golf_carts:    "8 st tillgängliga, 295 kr/runda, bokas i receptionen",
+    qa_trolley:       "Draggkärror gratis, eltrolley 150 kr/dag",
+    qa_club_rental:   "Fullset 200 kr/dag, finns i receptionen",
+    qa_driving_range: "Öppen 07–20, 50 bollar 50 kr",
+    qa_lessons:       "PGA-pro på plats, 45 min lektion 600 kr",
+    qa_proshop:       "Öppen 09–18 alla dagar, kläder, bollar, utrustning",
+    qa_restaurant:    "Serverar lunch 11–15, à la carte 15–20, stängt måndag",
+    qa_locker_room:   "Ja, finns för herr och dam, dusch ingår",
+    qa_parking:       "Gratis parkering direkt vid klubbhuset, 100+ platser",
+    qa_address:       "Golfvägen 1, 745 98 Enköping",
+    qa_phone:         "0171-123 45",
+    qa_email:         "info@demogolfklubb.se",
+  },
+  restaurang: {
+    qa_opening_hours: "Mån–Fre 11–22, Lör–Sön 12–23, stängt tisdagar",
+    qa_cuisine:       "Italiensk husmanskost, pizza & pasta, allt hemlagat",
+    qa_price_range:   "Förrätt 95–145 kr, huvudrätt 195–295 kr, dessert 85 kr",
+    qa_booking:       "Bokas via hemsidan, telefon eller drop-in",
+    qa_alcohol:       "Serveringstillstånd, vin, öl, sprit. Alkoholfritt finns.",
+    qa_vegetarian:    "Alltid 2–3 veganalternativ, glutenfritt på beställning",
+    qa_allergies:     "Kontakta oss i förväg, vi anpassar vid behov",
+    qa_children:      "Ja, barnmeny 89 kr, barnstolar finns",
+    qa_group:         "Privat sal för upp till 40 pers, min 20 pers",
+    qa_takeaway:      "Takeaway finns, leverans via Foodora och Uber Eats",
+    qa_catering:      "Vi erbjuder catering för företag, kontakta oss",
+    qa_dresscode:     "Smart casual, inga shorts eller sandaler",
+    qa_parking:       "Gatuparkering utanför, P-hus 200 m bort",
+    qa_wifi:          "Gratis WiFi, fråga personalen om lösenordet",
+    qa_payment:       "Kort, Swish och kontant. Ej Amex.",
+    qa_giftcard:      "Ja, köps i restaurangen eller online",
+    qa_address:       "Storgatan 12, 111 23 Stockholm",
+    qa_phone:         "08-123 456 78",
+    qa_email:         "boka@demorestaurang.se",
+  },
+  default: {
+    qa_opening_hours:  "Mån–Fre 09–18, Lör 10–15, Sön stängt",
+    qa_services:       "Vi erbjuder tjänster inom konsultation, support och rådgivning",
+    qa_price_range:    "Priser från 500 kr/timme, paket från 2 500 kr",
+    qa_booking:        "Bokas via hemsidan eller telefon",
+    qa_cancel_policy:  "Avbokning senast 24h innan, annars debiteras 50%",
+    qa_payment:        "Kort, Swish och faktura med 30 dagars betalningsvillkor",
+    qa_parking:        "Gratis parkering vid entrén",
+    qa_accessibility:  "Rullstolsanpassat, hiss och handikappsparkering finns",
+    qa_wifi:           "Gratis WiFi för alla kunder",
+    qa_giftcard:       "Presentkort finns, köps i butik eller online",
+    qa_address:        "Storgatan 1, 123 45 Demostad",
+    qa_phone:          "08-000 000 00",
+    qa_email:          "info@demoforetag.se",
+  },
+};
+
 function diffLines(oldText: string, newText: string): { text: string; added: boolean }[] {
   const oldSet = new Set(oldText.split("\n"));
   return newText.split("\n").map(line => ({
@@ -549,6 +610,17 @@ export default function ConfigurePage() {
                 <span className="text-[10px] font-semibold text-[#5a5270] uppercase tracking-widest">Snabbfakta</span>
                 {qaLocked && <span className="text-[9px] text-amber-400 bg-amber-500/10 border border-amber-500/20 px-1.5 py-0.5 rounded-full">🔒 Låst</span>}
                 <div className="flex-1 h-px bg-[#1e1a2e]" />
+                {!qaLocked && (
+                  <button
+                    onClick={() => {
+                      const data = TEST_DATA[industry] ?? TEST_DATA.default;
+                      setQaAnswers(prev => ({ ...prev, ...data }));
+                    }}
+                    className="text-[9px] text-fuchsia-400 hover:text-fuchsia-300 bg-fuchsia-500/10 hover:bg-fuchsia-500/20 border border-fuchsia-500/20 px-1.5 py-0.5 rounded-full transition whitespace-nowrap"
+                  >
+                    🎲 Testdata
+                  </button>
+                )}
               </div>
               <div className="space-y-1.5">
                 {qaQuestions.map(q => (
