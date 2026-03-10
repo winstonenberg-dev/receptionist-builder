@@ -3,6 +3,27 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 
+export async function PATCH(
+  req: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  const session = await getServerSession(authOptions);
+  if (!session?.user?.email) return NextResponse.json({ error: "Ej inloggad" }, { status: 401 });
+
+  const { id } = await params;
+  const { name } = await req.json();
+  if (!name?.trim()) return NextResponse.json({ error: "Namn krävs" }, { status: 400 });
+
+  const project = await prisma.project.findUnique({ where: { id } });
+  if (!project) return NextResponse.json({ error: "Hittades inte" }, { status: 404 });
+
+  const user = await prisma.user.findUnique({ where: { email: session.user.email } });
+  if (project.userId !== user?.id) return NextResponse.json({ error: "Ej behörig" }, { status: 403 });
+
+  const updated = await prisma.project.update({ where: { id }, data: { name: name.trim() } });
+  return NextResponse.json({ ok: true, name: updated.name });
+}
+
 export async function DELETE(
   req: NextRequest,
   { params }: { params: Promise<{ id: string }> }

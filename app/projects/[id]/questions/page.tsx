@@ -184,6 +184,22 @@ export default function ConfigurePage() {
   const [implementDone, setImplementDone] = useState(false);
   const [simulateDone, setSimulateDone] = useState(false);
 
+  // Projektnamn
+  const [projectName, setProjectName] = useState("");
+  const [editingName, setEditingName] = useState(false);
+  const [nameInput, setNameInput] = useState("");
+
+  const saveName = async () => {
+    const trimmed = nameInput.trim();
+    if (!trimmed || trimmed === projectName) { setEditingName(false); return; }
+    await fetch(`/api/projects/${id}`, {
+      method: "PATCH", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ name: trimmed }),
+    });
+    setProjectName(trimmed);
+    setEditingName(false);
+  };
+
   // Q&A snabbfakta
   const [qaAnswers, setQaAnswers] = useState<Record<string, string>>({});
   const [qaLocked, setQaLocked] = useState(false);
@@ -252,6 +268,7 @@ export default function ConfigurePage() {
       if (project?.websiteUrl) setWebsiteUrl(project.websiteUrl);
       if (project?.promptLocked) setPromptLocked(project.promptLocked);
       if (project?.industry) setIndustry(project.industry);
+      if (project?.name) { setProjectName(project.name); setNameInput(project.name); }
 
       // Ladda alla qa_-svar från databasen (oberoende av vilken bransch som visas)
       const qaMap: Record<string, string> = {};
@@ -460,6 +477,25 @@ export default function ConfigurePage() {
         <div className="flex items-center gap-3">
           <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-fuchsia-500 to-violet-600 flex items-center justify-center text-white font-bold text-xs">AI</div>
           <span className="font-semibold text-white text-sm">AI Operator</span>
+          {projectName && (<>
+            <span className="text-[#3d3456] text-sm">/</span>
+            {editingName ? (
+              <input
+                autoFocus
+                value={nameInput}
+                onChange={e => setNameInput(e.target.value)}
+                onBlur={saveName}
+                onKeyDown={e => { if (e.key === "Enter") saveName(); if (e.key === "Escape") setEditingName(false); }}
+                className="bg-[#1a1628] border border-fuchsia-500/40 rounded px-2 py-0.5 text-white text-sm w-48 focus:outline-none focus:border-fuchsia-400"
+              />
+            ) : (
+              <button onClick={() => { setNameInput(projectName); setEditingName(true); }}
+                className="text-[#9b93b3] hover:text-white text-sm transition group flex items-center gap-1">
+                {projectName}
+                <span className="opacity-0 group-hover:opacity-100 text-[10px] text-fuchsia-400">✏️</span>
+              </button>
+            )}
+          </>)}
         </div>
         <Link href="/dashboard" className="text-[#9b93b3] hover:text-white transition text-sm">← Dashboard</Link>
       </nav>
