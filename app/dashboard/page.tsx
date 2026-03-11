@@ -13,6 +13,7 @@ type Project = {
   latestPromptUpdated: string | null;
   hasWebsite: boolean;
   hasSynthesis: boolean;
+  promptLocked: boolean;
 };
 
 const INDUSTRY_ICON: Record<string, string> = {
@@ -80,6 +81,113 @@ function ProgressBar({ value }: { value: number }) {
   );
 }
 
+function LockIcon({ locked }: { locked: boolean }) {
+  return locked ? (
+    <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+    </svg>
+  ) : (
+    <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 11V7a4 4 0 118 0m-4 8v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2z" />
+    </svg>
+  );
+}
+
+function PinModal({
+  project,
+  onSuccess,
+  onCancel,
+}: {
+  project: Project;
+  onSuccess: (newLocked: boolean) => void;
+  onCancel: () => void;
+}) {
+  const [pin, setPin] = useState("");
+  const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
+
+  const isLocking = !project.promptLocked;
+  const [confirmPin, setConfirmPin] = useState("");
+
+  async function handleSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    setError("");
+    if (isLocking && pin !== confirmPin) {
+      setError("PIN-koderna matchar inte");
+      return;
+    }
+    if (pin.length < 4) {
+      setError("PIN måste vara minst 4 tecken");
+      return;
+    }
+    setLoading(true);
+    try {
+      const res = await fetch(`/api/projects/${project.id}/lock`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ locked: isLocking, pin }),
+      });
+      const data = await res.json();
+      if (!res.ok) { setError(data.error ?? "Något gick fel"); return; }
+      onSuccess(isLocking);
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm">
+      <div className="bg-[#111] border border-white/10 rounded-2xl p-6 max-w-sm w-full mx-4 shadow-2xl">
+        <div className={`w-10 h-10 rounded-full flex items-center justify-center mb-4 ${isLocking ? "bg-amber-500/10 border border-amber-500/20 text-amber-400" : "bg-emerald-500/10 border border-emerald-500/20 text-emerald-400"}`}>
+          <LockIcon locked={isLocking} />
+        </div>
+        <h3 className="text-white font-semibold mb-1">
+          {isLocking ? "Lås projekt" : "Lås upp projekt"}
+        </h3>
+        <p className="text-white/40 text-sm mb-5">
+          {isLocking
+            ? <>Ange en PIN-kod för att låsa <span className="text-white/80 font-medium">"{project.name}"</span>. Koden krävs för att redigera prompts.</>
+            : <>Ange PIN-koden för att låsa upp <span className="text-white/80 font-medium">"{project.name}"</span>.</>
+          }
+        </p>
+        <form onSubmit={handleSubmit} className="space-y-3">
+          <input
+            type="password"
+            inputMode="numeric"
+            value={pin}
+            onChange={e => setPin(e.target.value)}
+            placeholder="PIN-kod"
+            autoFocus
+            className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-white placeholder-white/20 text-sm focus:outline-none focus:border-white/30 tracking-widest"
+          />
+          {isLocking && (
+            <input
+              type="password"
+              inputMode="numeric"
+              value={confirmPin}
+              onChange={e => setConfirmPin(e.target.value)}
+              placeholder="Bekräfta PIN-kod"
+              className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-white placeholder-white/20 text-sm focus:outline-none focus:border-white/30 tracking-widest"
+            />
+          )}
+          {error && <p className="text-red-400 text-xs">{error}</p>}
+          <div className="flex gap-3 pt-1">
+            <button type="button" onClick={onCancel} disabled={loading}
+              className="flex-1 bg-white/5 border border-white/10 text-white/60 hover:text-white rounded-xl py-2 text-sm font-medium transition disabled:opacity-50">
+              Avbryt
+            </button>
+            <button type="submit" disabled={loading}
+              className={`flex-1 disabled:opacity-50 text-white rounded-xl py-2 text-sm font-semibold transition flex items-center justify-center gap-2 ${isLocking ? "bg-amber-500 hover:bg-amber-400" : "bg-emerald-500 hover:bg-emerald-400"}`}>
+              {loading && <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />}
+              {isLocking ? "Lås" : "Lås upp"}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+}
+
 function DeleteModal({ name, onConfirm, onCancel, loading }: { name: string; onConfirm: () => void; onCancel: () => void; loading: boolean }) {
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm">
@@ -116,6 +224,7 @@ export default function DashboardPage() {
   const [loadingProjects, setLoadingProjects] = useState(true);
   const [deleteTarget, setDeleteTarget] = useState<Project | null>(null);
   const [deleting, setDeleting] = useState(false);
+  const [lockTarget, setLockTarget] = useState<Project | null>(null);
 
   useEffect(() => {
     if (status === "unauthenticated") router.push("/");
@@ -140,6 +249,12 @@ export default function DashboardPage() {
     } finally {
       setLoadingProjects(false);
     }
+  };
+
+  const handleLockSuccess = (newLocked: boolean) => {
+    if (!lockTarget) return;
+    setProjects(prev => prev.map(p => p.id === lockTarget.id ? { ...p, promptLocked: newLocked } : p));
+    setLockTarget(null);
   };
 
   const handleDelete = async () => {
@@ -192,6 +307,9 @@ export default function DashboardPage() {
 
       {deleteTarget && (
         <DeleteModal name={deleteTarget.name} onConfirm={handleDelete} onCancel={() => setDeleteTarget(null)} loading={deleting} />
+      )}
+      {lockTarget && (
+        <PinModal project={lockTarget} onSuccess={handleLockSuccess} onCancel={() => setLockTarget(null)} />
       )}
 
       {/* Nav */}
@@ -336,14 +454,23 @@ export default function DashboardPage() {
                       <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
                       Testa chatbot
                     </Link>
-                    <button
-                      onClick={() => setDeleteTarget(p)}
-                      className="text-xs text-white/20 hover:text-red-400 transition flex items-center gap-1.5">
-                      <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                      </svg>
-                      Radera
-                    </button>
+                    <div className="flex items-center gap-3">
+                      <button
+                        onClick={e => { e.stopPropagation(); setLockTarget(p); }}
+                        title={p.promptLocked ? "Lås upp projekt" : "Lås projekt"}
+                        className={`text-xs transition flex items-center gap-1.5 ${p.promptLocked ? "text-amber-400 hover:text-amber-300" : "text-white/20 hover:text-amber-400"}`}>
+                        <LockIcon locked={p.promptLocked} />
+                        {p.promptLocked ? "Låst" : "Lås"}
+                      </button>
+                      <button
+                        onClick={() => setDeleteTarget(p)}
+                        className="text-xs text-white/20 hover:text-red-400 transition flex items-center gap-1.5">
+                        <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                        </svg>
+                        Radera
+                      </button>
+                    </div>
                   </div>
                 </div>
               );

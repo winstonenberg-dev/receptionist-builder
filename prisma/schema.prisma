@@ -25,6 +25,7 @@ model Project {
   websiteUrl   String?
   industry     String?
   promptLocked Boolean        @default(false)
+  lockPin      String?
   createdAt    DateTime       @default(now())
   answers      Answer[]
   prompts      SystemPrompt[]
