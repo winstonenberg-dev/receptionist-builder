@@ -119,18 +119,39 @@ BRANSCH AGENT:\n${industryResult}${websiteCtx}`,
 
   // ── PHASE 3: Generate system prompt ──────────────────────────────────────
   const systemPromptText = await ask(groq,
-    `Du är senior AI-arkitekt. Skapa en komplett system-prompt för en AI-receptionist baserat på informationen nedan.
+    `Du är senior AI-arkitekt. Din uppgift är att skriva en strukturerad system-prompt för en AI-receptionist.
 
-KRAV:
-1. Börja: "Du är en vänlig och professionell receptionist för [företagsnamn]."
-2. Inkludera ALLA konkreta faktauppgifter från "KUNDENS EGNA SVAR" — telefonnummer, adress, öppettider, priser etc. måste finnas med exakt som angivna
-3. Inkludera tydliga riktlinjer för kundbemötande och ton anpassade till ${industry}
-4. Lista vad botten ska prioritera och fokusera på
-5. Inkludera säsongsanpassning för ${currentMonth}
-6. Kunskapsregel: svara bara på det du vet, annars "Det vet jag tyvärr inte — kontakta oss direkt på [telefonnummer/email]."
-7. Svara på svenska om inte kunden skriver annat
+KRITISK REGEL — HALLUCINATION-SKYDD:
+Fakta (priser, tider, telefonnummer, adresser, specifika regler) får BARA skrivas in om de finns i "KUNDENS EGNA SVAR" eller "KUNSKAP FRÅN HEMSIDAN". Uppfinn aldrig siffror eller specifika uppgifter.
 
-VIKTIGT: Skriv BARA den färdiga system-prompten, ingen annan text. Hitta INTE på fakta som inte finns i underlaget.`,
+STRUKTUR — skriv exakt dessa sektioner i ordning:
+
+1. IDENTITET (1–2 meningar)
+   Börja med: "Du är en vänlig och professionell receptionist för ${bizName}."
+   Beskriv kort verksamhetstypen och kärnuppdraget.
+
+2. FAKTA DU KAN (bara om det finns i källdata)
+   Lista konkret information från KUNDENS EGNA SVAR och hemsidan:
+   öppettider, priser, telefon, adress, bokningssätt, specifika regler m.m.
+   Om inget finns — utelämna hela sektionen.
+
+3. HUR DU KOMMUNICERAR (hämta från BEMÖTANDE och BRANSCH-agenten)
+   Ton, språk, empati, hur du avslutar konversationer.
+   Specifika riktlinjer för hur du kommunicerar kring regler, krav och begränsningar.
+   Hur du hanterar missnöjda kunder.
+
+4. VAD DU PRIORITERAR (hämta från PRIORITET och FAQ-agenten)
+   Vad du alltid frågar om, vad du alltid nämner, vilka ämnen du är extra förberedd på.
+   Vanliga frågor i branschen och hur du hanterar dem.
+
+5. SÄSONGSANPASSNING (hämta från SÄSONG-agenten)
+   Vad som är aktuellt nu (${currentMonth}) och vad du proaktivt kan nämna.
+
+6. NÄR DU INTE VET
+   Svara varmt och naturligt: "Det vet jag faktiskt inte — hör av dig till oss direkt så hjälper vi dig!"
+   Variera formuleringen. Hänvisa ALDRIG till "data", "systemet" eller "information".
+
+Skriv BARA den färdiga system-prompten — ingen rubrik, ingen kommentar, ingen förklaring utanför texten.`,
     `FÖRETAG: ${bizName}
 BRANSCH: ${industry}
 ${qaCtx}
@@ -140,7 +161,7 @@ PRIORITET:\n${focusResult}
 SÄSONG:\n${seasonResult}
 BRANSCH:\n${industryResult}
 SYNTES:\n${synthesisResult}${websiteCtxFull}`,
-    2000
+    3000
   );
 
   const latest = await prisma.systemPrompt.findFirst({ where: { projectId: id }, orderBy: { version: "desc" } });
