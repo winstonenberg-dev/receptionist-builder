@@ -13,7 +13,6 @@ type Project = {
   latestPromptUpdated: string | null;
   hasWebsite: boolean;
   hasSynthesis: boolean;
-  promptLocked: boolean;
 };
 
 const INDUSTRY_ICON: Record<string, string> = {
@@ -81,113 +80,6 @@ function ProgressBar({ value }: { value: number }) {
   );
 }
 
-function LockIcon({ locked }: { locked: boolean }) {
-  return locked ? (
-    <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
-    </svg>
-  ) : (
-    <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 11V7a4 4 0 118 0m-4 8v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2z" />
-    </svg>
-  );
-}
-
-function PinModal({
-  project,
-  onSuccess,
-  onCancel,
-}: {
-  project: Project;
-  onSuccess: (newLocked: boolean) => void;
-  onCancel: () => void;
-}) {
-  const [pin, setPin] = useState("");
-  const [error, setError] = useState("");
-  const [loading, setLoading] = useState(false);
-
-  const isLocking = !project.promptLocked;
-  const [confirmPin, setConfirmPin] = useState("");
-
-  async function handleSubmit(e: React.FormEvent) {
-    e.preventDefault();
-    setError("");
-    if (isLocking && pin !== confirmPin) {
-      setError("PIN-koderna matchar inte");
-      return;
-    }
-    if (pin.length < 4) {
-      setError("PIN måste vara minst 4 tecken");
-      return;
-    }
-    setLoading(true);
-    try {
-      const res = await fetch(`/api/projects/${project.id}/lock`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ locked: isLocking, pin }),
-      });
-      const data = await res.json();
-      if (!res.ok) { setError(data.error ?? "Något gick fel"); return; }
-      onSuccess(isLocking);
-    } finally {
-      setLoading(false);
-    }
-  }
-
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm">
-      <div className="bg-[#111] border border-white/10 rounded-2xl p-6 max-w-sm w-full mx-4 shadow-2xl">
-        <div className={`w-10 h-10 rounded-full flex items-center justify-center mb-4 ${isLocking ? "bg-amber-500/10 border border-amber-500/20 text-amber-400" : "bg-emerald-500/10 border border-emerald-500/20 text-emerald-400"}`}>
-          <LockIcon locked={isLocking} />
-        </div>
-        <h3 className="text-white font-semibold mb-1">
-          {isLocking ? "Lås projekt" : "Lås upp projekt"}
-        </h3>
-        <p className="text-white/40 text-sm mb-5">
-          {isLocking
-            ? <>Ange en PIN-kod för att låsa <span className="text-white/80 font-medium">"{project.name}"</span>. Koden krävs för att redigera prompts.</>
-            : <>Ange PIN-koden för att låsa upp <span className="text-white/80 font-medium">"{project.name}"</span>.</>
-          }
-        </p>
-        <form onSubmit={handleSubmit} className="space-y-3">
-          <input
-            type="password"
-            inputMode="numeric"
-            value={pin}
-            onChange={e => setPin(e.target.value)}
-            placeholder="PIN-kod"
-            autoFocus
-            className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-white placeholder-white/20 text-sm focus:outline-none focus:border-white/30 tracking-widest"
-          />
-          {isLocking && (
-            <input
-              type="password"
-              inputMode="numeric"
-              value={confirmPin}
-              onChange={e => setConfirmPin(e.target.value)}
-              placeholder="Bekräfta PIN-kod"
-              className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-white placeholder-white/20 text-sm focus:outline-none focus:border-white/30 tracking-widest"
-            />
-          )}
-          {error && <p className="text-red-400 text-xs">{error}</p>}
-          <div className="flex gap-3 pt-1">
-            <button type="button" onClick={onCancel} disabled={loading}
-              className="flex-1 bg-white/5 border border-white/10 text-white/60 hover:text-white rounded-xl py-2 text-sm font-medium transition disabled:opacity-50">
-              Avbryt
-            </button>
-            <button type="submit" disabled={loading}
-              className={`flex-1 disabled:opacity-50 text-white rounded-xl py-2 text-sm font-semibold transition flex items-center justify-center gap-2 ${isLocking ? "bg-amber-500 hover:bg-amber-400" : "bg-emerald-500 hover:bg-emerald-400"}`}>
-              {loading && <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />}
-              {isLocking ? "Lås" : "Lås upp"}
-            </button>
-          </div>
-        </form>
-      </div>
-    </div>
-  );
-}
-
 function DeleteModal({ name, onConfirm, onCancel, loading }: { name: string; onConfirm: () => void; onCancel: () => void; loading: boolean }) {
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm">
@@ -217,6 +109,92 @@ function DeleteModal({ name, onConfirm, onCancel, loading }: { name: string; onC
   );
 }
 
+function PinSettingsModal({ hasPin, onClose }: { hasPin: boolean; onClose: () => void }) {
+  const [pin, setPin] = useState("");
+  const [confirmPin, setConfirmPin] = useState("");
+  const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [success, setSuccess] = useState("");
+
+  async function handleSet(e: React.FormEvent) {
+    e.preventDefault();
+    setError(""); setSuccess("");
+    if (pin !== confirmPin) { setError("PIN-koderna matchar inte"); return; }
+    if (pin.length < 4) { setError("PIN måste vara minst 4 tecken"); return; }
+    setLoading(true);
+    try {
+      const res = await fetch("/api/admin-pin", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ pin }),
+      });
+      if (res.ok) { setSuccess("PIN-kod sparad!"); setPin(""); setConfirmPin(""); }
+      else { const d = await res.json(); setError(d.error ?? "Något gick fel"); }
+    } finally { setLoading(false); }
+  }
+
+  async function handleRemove() {
+    setError(""); setSuccess("");
+    setLoading(true);
+    try {
+      const res = await fetch("/api/admin-pin", { method: "DELETE" });
+      if (res.ok) { setSuccess("PIN-kod borttagen"); }
+      else { const d = await res.json(); setError(d.error ?? "Något gick fel"); }
+    } finally { setLoading(false); }
+  }
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm">
+      <div className="bg-[#111] border border-white/10 rounded-2xl p-6 max-w-sm w-full mx-4 shadow-2xl">
+        <div className="flex items-center justify-between mb-4">
+          <h3 className="text-white font-semibold">PIN-skydd för projekt</h3>
+          <button onClick={onClose} className="text-white/30 hover:text-white transition">
+            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+        </div>
+        <p className="text-white/40 text-sm mb-5">
+          {hasPin
+            ? "En PIN-kod är aktiv. Alla projekt kräver koden för att öppnas."
+            : "Sätt en PIN-kod för att skydda alla projekt. Koden krävs varje gång du öppnar ett projekt."}
+        </p>
+        <form onSubmit={handleSet} className="space-y-3">
+          <input
+            type="password"
+            inputMode="numeric"
+            value={pin}
+            onChange={e => setPin(e.target.value)}
+            placeholder={hasPin ? "Ny PIN-kod" : "PIN-kod"}
+            className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-white placeholder-white/20 text-sm focus:outline-none focus:border-white/30 tracking-widest"
+          />
+          <input
+            type="password"
+            inputMode="numeric"
+            value={confirmPin}
+            onChange={e => setConfirmPin(e.target.value)}
+            placeholder="Bekräfta PIN-kod"
+            className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-white placeholder-white/20 text-sm focus:outline-none focus:border-white/30 tracking-widest"
+          />
+          {error && <p className="text-red-400 text-xs">{error}</p>}
+          {success && <p className="text-emerald-400 text-xs">{success}</p>}
+          <button type="submit" disabled={loading || pin.length < 4}
+            className="w-full bg-white text-black rounded-xl py-2.5 text-sm font-semibold hover:bg-white/90 disabled:opacity-40 transition flex items-center justify-center gap-2">
+            {loading && <span className="w-4 h-4 border-2 border-black border-t-transparent rounded-full animate-spin" />}
+            {hasPin ? "Uppdatera PIN-kod" : "Spara PIN-kod"}
+          </button>
+        </form>
+        {hasPin && (
+          <button onClick={handleRemove} disabled={loading}
+            className="w-full mt-2 text-red-400 hover:text-red-300 text-sm py-2 transition disabled:opacity-50">
+            Ta bort PIN-skydd
+          </button>
+        )}
+      </div>
+    </div>
+  );
+}
+
 export default function DashboardPage() {
   const { data: session, status } = useSession();
   const router = useRouter();
@@ -224,14 +202,18 @@ export default function DashboardPage() {
   const [loadingProjects, setLoadingProjects] = useState(true);
   const [deleteTarget, setDeleteTarget] = useState<Project | null>(null);
   const [deleting, setDeleting] = useState(false);
-  const [lockTarget, setLockTarget] = useState<Project | null>(null);
+  const [showPinSettings, setShowPinSettings] = useState(false);
+  const [hasPin, setHasPin] = useState(false);
 
   useEffect(() => {
     if (status === "unauthenticated") router.push("/");
   }, [status, router]);
 
   useEffect(() => {
-    if (status === "authenticated") loadProjects();
+    if (status === "authenticated") {
+      loadProjects();
+      fetch("/api/admin-pin").then(r => r.json()).then(d => setHasPin(!!d.hasPin));
+    }
   }, [status]);
 
   const loadProjects = async () => {
@@ -251,12 +233,6 @@ export default function DashboardPage() {
     }
   };
 
-  const handleLockSuccess = (newLocked: boolean) => {
-    if (!lockTarget) return;
-    setProjects(prev => prev.map(p => p.id === lockTarget.id ? { ...p, promptLocked: newLocked } : p));
-    setLockTarget(null);
-  };
-
   const handleDelete = async () => {
     if (!deleteTarget) return;
     setDeleting(true);
@@ -269,9 +245,9 @@ export default function DashboardPage() {
     }
   };
 
-  const incompleteBots   = projects.filter(p => completeness(p) < 100).length;
+  const incompleteBots    = projects.filter(p => completeness(p) < 100).length;
   const websiteDrivenBots = projects.filter(p => p.hasWebsite).length;
-  const totalBots        = projects.length;
+  const totalBots         = projects.length;
 
   if (status === "loading") return (
     <div className="min-h-screen flex items-center justify-center bg-black">
@@ -284,7 +260,7 @@ export default function DashboardPage() {
   return (
     <div className="min-h-screen bg-black text-white">
 
-      {/* Golden blobs — fixed to viewport, outside overflow constraints */}
+      {/* Golden blobs */}
       {BLOBS.map((b, i) => (
         <div
           key={i}
@@ -308,8 +284,11 @@ export default function DashboardPage() {
       {deleteTarget && (
         <DeleteModal name={deleteTarget.name} onConfirm={handleDelete} onCancel={() => setDeleteTarget(null)} loading={deleting} />
       )}
-      {lockTarget && (
-        <PinModal project={lockTarget} onSuccess={handleLockSuccess} onCancel={() => setLockTarget(null)} />
+      {showPinSettings && (
+        <PinSettingsModal hasPin={hasPin} onClose={() => {
+          setShowPinSettings(false);
+          fetch("/api/admin-pin").then(r => r.json()).then(d => setHasPin(!!d.hasPin));
+        }} />
       )}
 
       {/* Nav */}
@@ -320,6 +299,17 @@ export default function DashboardPage() {
         </div>
         <div className="flex items-center gap-5 text-sm">
           <span className="text-white/30 hidden sm:block">{session?.user?.email}</span>
+          <button
+            onClick={() => setShowPinSettings(true)}
+            title={hasPin ? "PIN-skydd aktivt" : "Sätt PIN-skydd"}
+            className={`transition flex items-center gap-1.5 text-sm ${hasPin ? "text-amber-400 hover:text-amber-300" : "text-white/30 hover:text-white"}`}>
+            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d={hasPin
+                ? "M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"
+                : "M8 11V7a4 4 0 118 0m-4 8v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2z"} />
+            </svg>
+            {hasPin ? "PIN aktiv" : "Sätt PIN"}
+          </button>
           <button onClick={() => signOut({ callbackUrl: "/" })} className="text-white/50 hover:text-white transition text-sm">Logga ut</button>
         </div>
       </nav>
@@ -454,23 +444,14 @@ export default function DashboardPage() {
                       <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
                       Testa chatbot
                     </Link>
-                    <div className="flex items-center gap-3">
-                      <button
-                        onClick={e => { e.stopPropagation(); setLockTarget(p); }}
-                        title={p.promptLocked ? "Lås upp projekt" : "Lås projekt"}
-                        className={`text-xs transition flex items-center gap-1.5 ${p.promptLocked ? "text-amber-400 hover:text-amber-300" : "text-white/20 hover:text-amber-400"}`}>
-                        <LockIcon locked={p.promptLocked} />
-                        {p.promptLocked ? "Låst" : "Lås"}
-                      </button>
-                      <button
-                        onClick={() => setDeleteTarget(p)}
-                        className="text-xs text-white/20 hover:text-red-400 transition flex items-center gap-1.5">
-                        <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                        </svg>
-                        Radera
-                      </button>
-                    </div>
+                    <button
+                      onClick={() => setDeleteTarget(p)}
+                      className="text-xs text-white/20 hover:text-red-400 transition flex items-center gap-1.5">
+                      <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                      </svg>
+                      Radera
+                    </button>
                   </div>
                 </div>
               );

@@ -13,6 +13,7 @@ model User {
   email     String    @unique
   password  String
   name      String?
+  adminPin  String?
   createdAt DateTime  @default(now())
   projects  Project[]
 }
