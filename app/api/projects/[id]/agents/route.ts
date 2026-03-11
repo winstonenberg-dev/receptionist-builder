@@ -162,13 +162,10 @@ Skriv BARA den färdiga system-prompten — ingen rubrik, ingen kommentar, ingen
     `FÖRETAG: ${bizName}
 BRANSCH: ${industry}
 ${qaCtx}
-FAQ-ANALYS:\n${faqResult}
-BEMÖTANDE:\n${serviceResult}
-PRIORITET:\n${focusResult}
-SÄSONG:\n${seasonResult}
-BRANSCH:\n${industryResult}
-SYNTES:\n${synthesisResult}${websiteCtxFull}`,
-    3000
+SYNTES (sammanfattning av alla agenter):\n${synthesisResult.slice(0, 1500)}
+FAQ-HIGHLIGHTS:\n${faqResult.slice(0, 400)}
+SÄSONG:\n${seasonResult.slice(0, 300)}${websiteCtx}`,
+    2000
   );
   } catch (e) {
     const msg = e instanceof Error ? e.message : String(e);
