@@ -389,7 +389,7 @@ export default function ConfigurePage() {
       try { data = await res.json(); } catch (_e) { /* non-JSON response, e.g. 504 timeout */ }
       if (!res.ok) throw new Error(String(data.error ?? `HTTP ${res.status} — kontrollera Vercel-loggar`));
 
-      setAgentResults(data);
+      setAgentResults(data as AgentResults);
       setOpenCards({ synthesis: true });
       const p = await fetch(`/api/projects/${id}/prompt`).then(r => r.json());
       if (p?.prompt) { setPromptText(p.prompt); setPromptVersion(p.version); }
