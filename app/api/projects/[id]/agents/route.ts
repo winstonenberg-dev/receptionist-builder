@@ -125,48 +125,15 @@ BRANSCH AGENT:\n${industryResult}${websiteCtx}`,
   // ── PHASE 3: Generate system prompt ──────────────────────────────────────
   let systemPromptText = "";
   try {
-  systemPromptText = await ask(groq,
-    `Du är senior AI-arkitekt. Din uppgift är att skriva en strukturerad system-prompt för en AI-receptionist.
-
-KRITISK REGEL — HALLUCINATION-SKYDD:
-Fakta (priser, tider, telefonnummer, adresser, specifika regler) får BARA skrivas in om de finns i "KUNDENS EGNA SVAR" eller "KUNSKAP FRÅN HEMSIDAN". Uppfinn aldrig siffror eller specifika uppgifter.
-
-STRUKTUR — skriv exakt dessa sektioner i ordning:
-
-1. IDENTITET (1–2 meningar)
-   Börja med: "Du är en vänlig och professionell receptionist för ${bizName}."
-   Beskriv kort verksamhetstypen och kärnuppdraget.
-
-2. FAKTA DU KAN (bara om det finns i källdata)
-   Lista konkret information från KUNDENS EGNA SVAR och hemsidan:
-   öppettider, priser, telefon, adress, bokningssätt, specifika regler m.m.
-   Om inget finns — utelämna hela sektionen.
-
-3. HUR DU KOMMUNICERAR (hämta från BEMÖTANDE och BRANSCH-agenten)
-   Ton, språk, empati, hur du avslutar konversationer.
-   Specifika riktlinjer för hur du kommunicerar kring regler, krav och begränsningar.
-   Hur du hanterar missnöjda kunder.
-
-4. VAD DU PRIORITERAR (hämta från PRIORITET och FAQ-agenten)
-   Vad du alltid frågar om, vad du alltid nämner, vilka ämnen du är extra förberedd på.
-   Vanliga frågor i branschen och hur du hanterar dem.
-
-5. SÄSONGSANPASSNING (hämta från SÄSONG-agenten)
-   Vad som är aktuellt nu (${currentMonth}) och vad du proaktivt kan nämna.
-
-6. NÄR DU INTE VET
-   Svara varmt och naturligt: "Det vet jag faktiskt inte — hör av dig till oss direkt så hjälper vi dig!"
-   Variera formuleringen. Hänvisa ALDRIG till "data", "systemet" eller "information".
-
-Skriv BARA den färdiga system-prompten — ingen rubrik, ingen kommentar, ingen förklaring utanför texten.`,
-    `FÖRETAG: ${bizName}
-BRANSCH: ${industry}
-${qaCtx.slice(0, 1200)}
-SYNTES:\n${synthesisResult.slice(0, 1000)}
-FAQ:\n${faqResult.slice(0, 300)}
-SÄSONG:\n${seasonResult.slice(0, 200)}`,
-    1800
-  );
+  const p3res = await groq.chat.completions.create({
+    model: "llama-3.3-70b-versatile",
+    messages: [
+      { role: "system", content: `Skriv en system-prompt för en AI-receptionist. Struktur: 1) IDENTITET, 2) FAKTA (bara från källdata — uppfinn inga siffror), 3) KOMMUNIKATION (ton, empati), 4) PRIORITERINGAR, 5) SÄSONG, 6) NÄR DU INTE VET. Returnera BARA prompten, ingen annan text.` },
+      { role: "user", content: `FÖRETAG: ${bizName}\nBRANSCH: ${industry}\n${qaCtx.slice(0, 1500)}\nSYNTES:\n${synthesisResult.slice(0, 1200)}\nSÄSONG:\n${seasonResult.slice(0, 300)}` },
+    ],
+    max_tokens: 1500,
+  });
+  systemPromptText = p3res.choices[0].message.content ?? "";
   } catch (e) {
     const msg = e instanceof Error ? e.message : String(e);
     console.error("Phase 3 error:", msg);

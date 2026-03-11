@@ -386,7 +386,7 @@ export default function ConfigurePage() {
     try {
       const res = await fetch(`/api/projects/${id}/agents`, { method: "POST" });
       let data: Record<string, unknown> = {};
-      try { data = await res.json(); } catch { /* non-JSON response, e.g. 504 timeout */ }
+      try { data = await res.json(); } catch (_e) { /* non-JSON response, e.g. 504 timeout */ }
       if (!res.ok) throw new Error(String(data.error ?? `HTTP ${res.status} — kontrollera Vercel-loggar`));
 
       setAgentResults(data);
