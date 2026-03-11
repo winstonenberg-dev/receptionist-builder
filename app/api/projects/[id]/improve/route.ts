@@ -17,10 +17,6 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
   });
   if (!project) return NextResponse.json({ error: "Projekt hittades inte eller ej behörig" }, { status: 404 });
 
-  if (project.promptLocked) {
-    return NextResponse.json({ error: "Prompten är låst. Lås upp den först." }, { status: 403 });
-  }
-
   const latest = await prisma.systemPrompt.findFirst({
     where: { projectId: id },
     orderBy: { version: "desc" },
