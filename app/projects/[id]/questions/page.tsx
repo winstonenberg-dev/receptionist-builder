@@ -385,8 +385,9 @@ export default function ConfigurePage() {
     setAgentLoading(true); setAgentError(""); setImplementDone(false); setPromptDiff(null);
     try {
       const res = await fetch(`/api/projects/${id}/agents`, { method: "POST" });
-      if (!res.ok) throw new Error("Något gick fel");
       const data = await res.json();
+      if (!res.ok) throw new Error(data.error ?? `HTTP ${res.status}`);
+
       setAgentResults(data);
       setOpenCards({ synthesis: true });
       const p = await fetch(`/api/projects/${id}/prompt`).then(r => r.json());
