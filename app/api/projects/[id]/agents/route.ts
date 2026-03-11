@@ -161,11 +161,11 @@ STRUKTUR — skriv exakt dessa sektioner i ordning:
 Skriv BARA den färdiga system-prompten — ingen rubrik, ingen kommentar, ingen förklaring utanför texten.`,
     `FÖRETAG: ${bizName}
 BRANSCH: ${industry}
-${qaCtx}
-SYNTES (sammanfattning av alla agenter):\n${synthesisResult.slice(0, 1500)}
-FAQ-HIGHLIGHTS:\n${faqResult.slice(0, 400)}
-SÄSONG:\n${seasonResult.slice(0, 300)}${websiteCtx}`,
-    2000
+${qaCtx.slice(0, 1200)}
+SYNTES:\n${synthesisResult.slice(0, 1000)}
+FAQ:\n${faqResult.slice(0, 300)}
+SÄSONG:\n${seasonResult.slice(0, 200)}`,
+    1800
   );
   } catch (e) {
     const msg = e instanceof Error ? e.message : String(e);
