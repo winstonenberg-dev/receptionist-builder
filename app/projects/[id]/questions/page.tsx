@@ -385,8 +385,9 @@ export default function ConfigurePage() {
     setAgentLoading(true); setAgentError(""); setImplementDone(false); setPromptDiff(null);
     try {
       const res = await fetch(`/api/projects/${id}/agents`, { method: "POST" });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error ?? `HTTP ${res.status}`);
+      let data: Record<string, unknown> = {};
+      try { data = await res.json(); } catch { /* non-JSON response, e.g. 504 timeout */ }
+      if (!res.ok) throw new Error(String(data.error ?? `HTTP ${res.status} — kontrollera Vercel-loggar`));
 
       setAgentResults(data);
       setOpenCards({ synthesis: true });
