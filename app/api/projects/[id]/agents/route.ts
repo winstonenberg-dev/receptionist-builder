@@ -6,6 +6,8 @@ import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { getGroqClient } from "@/lib/groq";
 
+export const maxDuration = 60;
+
 async function ask(groq: Groq, system: string, user: string, maxTokens = 700): Promise<string> {
   const res = await groq.chat.completions.create({
     model: "llama-3.1-8b-instant", // 500k TPD — 70b-versatile har bara 100k/dag
@@ -93,7 +95,9 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
   const industryResult = val(6, "");
 
   // ── PHASE 2: Synthesis agent ──────────────────────────────────────────────
-  const synthesisResult = await ask(groq,
+  let synthesisResult = "";
+  try {
+  synthesisResult = await ask(groq,
     `Du är senior AI-konsult specialiserad på konversations-AI. Din uppgift är att analysera alla agenters resultat och skapa en sammanfattning med konkreta förbättringsförslag för AI-receptionisten. Strukturera som:
 1. STYRKOR: Vad botten redan borde hantera bra baserat på kunskapen
 2. KRITISKA LUCKOR: Vad som saknas eller behöver förtydligas
@@ -116,9 +120,12 @@ SÄSONG AGENT:\n${seasonResult}
 BRANSCH AGENT:\n${industryResult}${websiteCtx}`,
     900
   );
+  } catch (e) { console.error("Phase 2 error:", e); }
 
   // ── PHASE 3: Generate system prompt ──────────────────────────────────────
-  const systemPromptText = await ask(groq,
+  let systemPromptText = "";
+  try {
+  systemPromptText = await ask(groq,
     `Du är senior AI-arkitekt. Din uppgift är att skriva en strukturerad system-prompt för en AI-receptionist.
 
 KRITISK REGEL — HALLUCINATION-SKYDD:
@@ -163,6 +170,14 @@ BRANSCH:\n${industryResult}
 SYNTES:\n${synthesisResult}${websiteCtxFull}`,
     3000
   );
+  } catch (e) {
+    const msg = e instanceof Error ? e.message : String(e);
+    console.error("Phase 3 error:", msg);
+    if (msg.includes("429") || msg.toLowerCase().includes("rate limit")) {
+      return NextResponse.json({ error: "AI-kvot slut för idag — försök igen imorgon." }, { status: 429 });
+    }
+    return NextResponse.json({ error: `Fel vid prompt-generering: ${msg}` }, { status: 500 });
+  }
 
   const latest = await prisma.systemPrompt.findFirst({ where: { projectId: id }, orderBy: { version: "desc" } });
   await prisma.systemPrompt.create({
