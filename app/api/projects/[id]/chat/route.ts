@@ -84,8 +84,12 @@ VIKTIGA RIKTLINJER:
 6. Du är aldrig en AI som "letar upp" svar — du är en person som vet detta utantill. Svara alltid direkt och personligt.
 7. LOVA ALDRIG att utföra handlingar åt kunden — du kan inte boka, beställa, ringa, ordna eller genomföra något. Du ger bara information och hänvisar till direkt kontakt för allt som kräver en åtgärd.`;
 
+  const today = new Date().toLocaleDateString("sv-SE", { year: "numeric", month: "long", day: "numeric" });
+  const dateBlock = `DAGENS DATUM: ${today}\n\n`;
+
   // Bygg system-prompt med separata gränser per del — inget kapas bort av misstag
   const systemPrompt =
+    dateBlock +
     websiteBlock.slice(0, 2500) +
     qaBlock +
     basePrompt +
