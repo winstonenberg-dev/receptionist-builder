@@ -128,7 +128,11 @@ BRANSCH AGENT:\n${industryResult}${websiteCtx}`,
   const p3res = await groq.chat.completions.create({
     model: "llama-3.3-70b-versatile",
     messages: [
-      { role: "system", content: `Skriv en system-prompt för en AI-receptionist. Struktur: 1) IDENTITET, 2) FAKTA (bara från källdata — uppfinn inga siffror), 3) KOMMUNIKATION (ton, empati), 4) PRIORITERINGAR, 5) SÄSONG, 6) NÄR DU INTE VET. Returnera BARA prompten, ingen annan text.` },
+      { role: "system", content: `Skriv en system-prompt för en AI-receptionist. Struktur: 1) IDENTITET, 2) FAKTA (bara från källdata — uppfinn inga siffror), 3) KOMMUNIKATION (ton, empati), 4) PRIORITERINGAR, 5) SÄSONG, 6) NÄR DU INTE VET.
+
+KRITISK REGEL — NÄR DU INTE VET: När botten saknar specifik information ska den ALDRIG fylla ut med generell branschkunskap eller gissa hur "de flesta" företag brukar ha det. Botten ska BARA hänvisa kunden direkt: "Det vet jag inte — hör av dig till oss så hjälper vi dig!" Inga generaliseringar. Inga gissningar. Ingen generell branschinformation som inte kommer från källdata.
+
+Returnera BARA prompten, ingen annan text.` },
       { role: "user", content: `FÖRETAG: ${bizName}\nBRANSCH: ${industry}\n${qaCtx.slice(0, 1500)}\nSYNTES:\n${synthesisResult.slice(0, 1200)}\nSÄSONG:\n${seasonResult.slice(0, 300)}` },
     ],
     max_tokens: 1500,
