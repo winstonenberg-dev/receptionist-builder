@@ -77,7 +77,7 @@ function extractInternalLinks(html: string, baseUrl: string): string[] {
     return (aScore === -1 ? 999 : aScore) - (bScore === -1 ? 999 : bScore);
   });
 
-  return links.slice(0, 6);
+  return links.slice(0, 4);
 }
 
 /** Branschanpassade extraktionskategorier */
@@ -221,8 +221,8 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
     // 3. Bygg kombinerat innehåll — hårt tak för att hålla sig under 6000 TPM
     const allContent = [
       `=== STARTSIDA ===\n${mainText.slice(0, 2000)}`,
-      ...validSubs.map(p => `=== ${p.url.replace(/^https?:\/\/[^/]+/, "")} ===\n${p.text.slice(0, 1200)}`),
-    ].join("\n\n").slice(0, 10000);
+      ...validSubs.map(p => `=== ${p.url.replace(/^https?:\/\/[^/]+/, "")} ===\n${p.text.slice(0, 2000)}`),
+    ].join("\n\n").slice(0, 12000);
 
     const pagesRead = 1 + validSubs.length;
 
@@ -291,7 +291,7 @@ HEMSIDANS INNEHÅLL (${pagesRead} sidor):
 ${allContent}`,
         },
       ],
-      max_tokens: 2000,
+      max_tokens: 1500,
     });
 
     const knowledge = knowledgeRes.choices[0].message.content ?? "";
