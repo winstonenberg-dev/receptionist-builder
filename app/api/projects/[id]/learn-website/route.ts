@@ -77,7 +77,7 @@ function extractInternalLinks(html: string, baseUrl: string): string[] {
     return (aScore === -1 ? 999 : aScore) - (bScore === -1 ? 999 : bScore);
   });
 
-  return links.slice(0, 4);
+  return links.slice(0, 8);
 }
 
 /** Branschanpassade extraktionskategorier */
@@ -218,11 +218,11 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
     const subPages = await Promise.all(subLinks.map(fetchPage));
     const validSubs = subPages.filter(Boolean) as { url: string; text: string }[];
 
-    // 3. Bygg kombinerat innehåll — hårt tak för att hålla sig under 6000 TPM
+    // 3. Bygg kombinerat innehåll
     const allContent = [
-      `=== STARTSIDA ===\n${mainText.slice(0, 2000)}`,
-      ...validSubs.map(p => `=== ${p.url.replace(/^https?:\/\/[^/]+/, "")} ===\n${p.text.slice(0, 2000)}`),
-    ].join("\n\n").slice(0, 12000);
+      `=== STARTSIDA ===\n${mainText.slice(0, 4000)}`,
+      ...validSubs.map(p => `=== ${p.url.replace(/^https?:\/\/[^/]+/, "")} ===\n${p.text.slice(0, 3000)}`),
+    ].join("\n\n").slice(0, 28000);
 
     const pagesRead = 1 + validSubs.length;
 
@@ -292,7 +292,7 @@ HEMSIDANS INNEHÅLL (${pagesRead} sidor):
 ${allContent}`,
         },
       ],
-      max_tokens: 1500,
+      max_tokens: 3000,
     });
 
     const knowledge = knowledgeRes.choices[0].message.content ?? "";
