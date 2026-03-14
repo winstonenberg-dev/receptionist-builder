@@ -258,13 +258,14 @@ REGLER FÖR KEDJOR/FLERA FILIALER:
 REGLER:
 - Skriv BARA fakta som faktiskt finns på hemsidan — aldrig gissningar
 - Bevara EXAKTA värden: priser i kr, tider i HH:MM, telefonnummer, adresser
-- Om det finns uppgifter om flera orter/filialer — ta KUN med uppgifter om den specificerade platsen
-- Om ett faktum inte finns → skriv det inte
+- Om ett faktum INTE finns på hemsidan → hoppa över det helt, skriv ingenting
+- Skriv ALDRIG "ingen information", "ej specificerat" eller liknande — utelämna bara
 - Inga fluffiga beskrivningar — bara konkreta fakta`,
         },
         {
           role: "user",
-          content: `Extrahera ALLA specifika faktauppgifter från dessa ${pagesRead} sidor. Lista varje faktum under rätt kategori.
+          content: `Extrahera specifika faktauppgifter från dessa ${pagesRead} sidor. Lista BARA fakta som faktiskt finns — hoppa över kategorier som saknar information helt.
+
 
 KATEGORIER ATT LETA I:
 📍 KONTAKT & ADRESS
