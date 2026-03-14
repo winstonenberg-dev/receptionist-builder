@@ -222,6 +222,7 @@ export default function ConfigurePage() {
   const [qaLocked, setQaLocked] = useState(false);
   const [qaSaving, setQaSaving] = useState(false);
   const [qaSaved, setQaSaved] = useState(false);
+  const [qaOpen, setQaOpen] = useState(false);
   const saveTimers = useRef<Record<string, ReturnType<typeof setTimeout>>>({});
 
   // Bransch
@@ -691,56 +692,66 @@ export default function ConfigurePage() {
 
             {/* ── Snabbfakta ── */}
             <div className="pt-3 pb-3 border-b border-[#1e1a2e] mb-3">
-              <div className="flex items-center gap-2 mb-2">
+              <button
+                onClick={() => setQaOpen(o => !o)}
+                className="flex items-center gap-2 w-full text-left mb-1"
+              >
                 <span className="text-[10px] font-semibold text-[#5a5270] uppercase tracking-widest">Snabbfakta</span>
                 {qaLocked && <span className="text-[9px] text-amber-400 bg-amber-500/10 border border-amber-500/20 px-1.5 py-0.5 rounded-full">🔒 Låst</span>}
                 <div className="flex-1 h-px bg-[#1e1a2e]" />
-                {!qaLocked && (
-                  <button
-                    onClick={() => {
-                      const data = TEST_DATA[industry] ?? TEST_DATA.default;
-                      setQaAnswers(prev => ({ ...prev, ...data }));
-                    }}
-                    className="text-[9px] text-fuchsia-400 hover:text-fuchsia-300 bg-fuchsia-500/10 hover:bg-fuchsia-500/20 border border-fuchsia-500/20 px-1.5 py-0.5 rounded-full transition whitespace-nowrap"
-                  >
-                    🎲 Testdata
-                  </button>
-                )}
-              </div>
-              <div className="space-y-1.5">
-                {qaQuestions.map(q => (
-                  <div key={q.key}>
-                    <label className="text-[9px] font-medium text-[#5a5270] mb-0.5 block">{q.label}</label>
-                    <input
-                      type="text"
-                      value={qaAnswers[q.key] ?? ""}
-                      onChange={e => !qaLocked && handleQaChange(q.key, q.label, e.target.value)}
-                      placeholder={q.placeholder}
-                      readOnly={qaLocked}
-                      className={`w-full border rounded-lg px-2 py-1.5 text-[10px] focus:outline-none transition ${
-                        qaLocked
-                          ? "bg-[#0a0910] border-[#1e1a2e] text-[#5a5270] cursor-not-allowed"
-                          : "bg-[#0d0b12] border-[#2a2440] focus:border-[#4d4468] text-white placeholder:text-[#2a2440] focus:ring-1 focus:ring-fuchsia-500/20"
-                      }`}
-                    />
+                <span className="text-[#5a5270] text-[10px]">{qaOpen ? "▲" : "▼"}</span>
+              </button>
+              {qaOpen && (
+                <>
+                  {!qaLocked && (
+                    <div className="flex justify-end mb-2">
+                      <button
+                        onClick={() => {
+                          const data = TEST_DATA[industry] ?? TEST_DATA.default;
+                          setQaAnswers(prev => ({ ...prev, ...data }));
+                        }}
+                        className="text-[9px] text-fuchsia-400 hover:text-fuchsia-300 bg-fuchsia-500/10 hover:bg-fuchsia-500/20 border border-fuchsia-500/20 px-1.5 py-0.5 rounded-full transition whitespace-nowrap"
+                      >
+                        🎲 Testdata
+                      </button>
+                    </div>
+                  )}
+                  <div className="space-y-1.5">
+                    {qaQuestions.map(q => (
+                      <div key={q.key}>
+                        <label className="text-[9px] font-medium text-[#5a5270] mb-0.5 block">{q.label}</label>
+                        <input
+                          type="text"
+                          value={qaAnswers[q.key] ?? ""}
+                          onChange={e => !qaLocked && handleQaChange(q.key, q.label, e.target.value)}
+                          placeholder={q.placeholder}
+                          readOnly={qaLocked}
+                          className={`w-full border rounded-lg px-2 py-1.5 text-[10px] focus:outline-none transition ${
+                            qaLocked
+                              ? "bg-[#0a0910] border-[#1e1a2e] text-[#5a5270] cursor-not-allowed"
+                              : "bg-[#0d0b12] border-[#2a2440] focus:border-[#4d4468] text-white placeholder:text-[#2a2440] focus:ring-1 focus:ring-fuchsia-500/20"
+                          }`}
+                        />
+                      </div>
+                    ))}
                   </div>
-                ))}
-              </div>
-              <div className="mt-2.5">
-                {qaLocked ? (
-                  <button onClick={() => saveQa(false)} disabled={qaSaving}
-                    className="w-full flex items-center justify-center gap-1.5 bg-amber-500/10 hover:bg-amber-500/20 border border-amber-500/30 text-amber-300 py-2 rounded-xl text-xs font-semibold transition">
-                    🔒 Lås upp för att redigera
-                  </button>
-                ) : (
-                  <button onClick={() => saveQa(true)} disabled={qaSaving}
-                    className="w-full flex items-center justify-center gap-1.5 bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 text-white py-2 rounded-xl text-xs font-semibold transition">
-                    {qaSaving ? <><span className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin" />Sparar...</>
-                      : qaSaved ? "✓ Sparat & låst!"
-                      : "💾 Spara & lås snabbfakta"}
-                  </button>
-                )}
-              </div>
+                  <div className="mt-2.5">
+                    {qaLocked ? (
+                      <button onClick={() => saveQa(false)} disabled={qaSaving}
+                        className="w-full flex items-center justify-center gap-1.5 bg-amber-500/10 hover:bg-amber-500/20 border border-amber-500/30 text-amber-300 py-2 rounded-xl text-xs font-semibold transition">
+                        🔒 Lås upp för att redigera
+                      </button>
+                    ) : (
+                      <button onClick={() => saveQa(true)} disabled={qaSaving}
+                        className="w-full flex items-center justify-center gap-1.5 bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 text-white py-2 rounded-xl text-xs font-semibold transition">
+                        {qaSaving ? <><span className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin" />Sparar...</>
+                          : qaSaved ? "✓ Sparat & låst!"
+                          : "💾 Spara & lås snabbfakta"}
+                      </button>
+                    )}
+                  </div>
+                </>
+              )}
             </div>
 
             {/* ── Embed-kod ── */}
